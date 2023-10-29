@@ -12,6 +12,25 @@ import torch
 import torch.nn.functional as F
 from scipy.sparse import coo_matrix
 
+def readcoo2mat(cooFile, normFile, resolution):
+    """
+    Function used for reading a coordinated tag file to a square matrix.
+    """
+    norm = open(normFile, 'r').readlines()
+    norm = np.array(list(map(float, norm)))
+    compact_idx = list(np.where(np.isnan(norm) ^ True)[0])
+    pd_mat = pd.read_csv(cooFile, sep='\t', header=None, dtype=int)
+    row = pd_mat[0].values // resolution
+    col = pd_mat[1].values // resolution
+    val = pd_mat[2].values
+    mat = coo_matrix((val, (row, col)), shape=(len(norm), len(norm))).toarray()
+    mat = mat.astype(float)
+    norm[np.isnan(norm)] = 1
+    mat = mat / norm
+    mat = mat.T / norm
+    HiC = mat + np.tril(mat, -1).T
+    return HiC.astype(int), compact_idx
+
 # Modified: add multichannel support
 def compactM(matrix, compact_idx, verbose=False):
     """

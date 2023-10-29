@@ -24,37 +24,35 @@ The following versions are recommended:
 GEO accession](https://www.ncbi.nlm.nih.gov/geo/query/acc.cgi?acc=GSE63525)(Rao *et al.* 2014). We used [GM12878](https://www.ncbi.nlm.nih.gov/geo/download/?acc=GSE63525&format=file&file=GSE63525%5FGM12878%5Fprimary%5Fintrachromosomal%5Fcontact%5Fmatrices%2Etar%2Egz)
 primary intrachromosomal and [K562](https://www.ncbi.nlm.nih.gov/geo/download/?acc=GSE63525&format=file&file=GSE63525%5FK562%5Fintrachromosomal%5Fcontact%5Fmatrices%2Etar%2Egz)
 intrachromasomal.
-* In `HiCARN/Arg_Parser.py`, set your root directory for data. For example, let the root directory be `./hic_data`
+* In `Arg_Parser.py`, set your root directory for data. For example, let the root directory be `/data/hic_data`
 * Create a `raw` directory under your root directory. Unzip the raw 
 HiC data into the `raw` directory. This would create a new directory with the cellline name under the directory.
 
-2. **Read the raw data(with HiCARN implementation).**
+2. **Read the raw data.**
 
-   * This will create a new directory `./hic_data/mat/GM12878` where all chrN_10kb.npz files will be stored.
+   * This will create a new directory `/data/hic_data/mat/GM12878` where all chrN_10kb.npz files will be stored.
 
 ```
-cd ./HiCARN
-python Read_Data.py -c GM12878
-cd ../
+python -m data_processing.Read_Data -c GM12878
 ```
 
 3. **Downsample the data with specific seed.**
 
-   * This will downsample original data with the downsample rate 16 and the seed 0, and then store all downsampled data files chrN_10kb_d16.npz into `./hic_data/mat/GM12878`.
+   * This will downsample original data with the downsample rate 16 and the seed 0, and then store all downsampled data files chrN_10kb_d16.npz into `/data/hic_data/mat/GM12878`.
 
 ```
 python -m data_processing.Downsample -hr 10kb -lr 10kb_d16 -r 16 -c GM12878 --seed 0
 ```
 
 4. **Transform the data to 3d matrices.**
-   * This will transform original data and downsampled data with the specified transforms(Default: Normalized HiC, O/E normalize, TAD notation, Loop p-values, Loop ratios), and then store all 3d matrices files chrN_10kb_d16.npz into `./hic_data/multichannel_mat/$TRANSFORM_NAMES/GM12878`.
+   * This will transform original data and downsampled data with the specified transforms(Default: Normalized HiC, O/E normalize, TAD notation, Loop p-values, Loop ratios), and then store all 3d matrices files chrN_10kb_d16.npz into `/data/hic_data/multichannel_mat/$TRANSFORM_NAMES/GM12878`.
 ```
 python -m data_processing.Transform -hr 10kb -lr 10kb_d16_seed0 -lrc 100 -chunk 40 -stride 40 -bound 200  -scale 1 -c GM12878 -s test
 ```
 
 6. **Generate 40x40 submatrices for training, validation and testing**
    * Split the 3d matrices into 40 by 40 patches and generate Train, test and valid file. 
-   * The data file will be stored under `./hic_data/data` with file name `Multi_10kb10kb_d16_seed0_c40_s40_ds40_b200_nonpool_GM12878_{train/valid/test}.npz`
+   * The data file will be stored under `/data/hic_data/data` with file name `Multi_10kb10kb_d16_seed0_c40_s40_ds40_b200_nonpool_GM12878_{train/valid/test}.npz`
 ```
 python -m data_processing.Generate -hr 10kb -lr 10kb_d16_seed0 -lrc 100 -chunk 40 -stride 40 -bound 200  -scale 1 -c GM12878 --diagonal-stride 40 --save-prefix Multi -s train 
 
