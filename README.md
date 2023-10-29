@@ -14,6 +14,7 @@ The following versions are recommended:
 - Scikit-learn 1.2.2
 - Matplotlib 3.7.1
 - tqdm 4.65.0
+- Imagen-pytorch 1.25.11
 
 ## Data preprocessing
 

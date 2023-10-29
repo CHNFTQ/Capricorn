@@ -48,7 +48,6 @@ def filename_parser(filename):
     scale = 1 if info_str[8] == 'nonpool' else get_digit(info_str[8])
     return chunk, stride, diagonal_stride, bound, scale
 
-
 from imagen_pytorch.imagen_pytorch import GaussianDiffusionContinuousTimes, log_snr_to_alpha_sigma, right_pad_dims_to, default, log
 from functools import partial
 
