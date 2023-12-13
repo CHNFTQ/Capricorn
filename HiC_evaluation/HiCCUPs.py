@@ -105,7 +105,7 @@ def loop_clustering(args, peak_cands, info = True):
 
     return peaks_final
 
-def find_peaks(full_matrix, full_norm, compact_idx, args, return_qvalue = False, info = True):
+def find_peaks(full_matrix, full_norm, compact_idx, multiple, args, return_qvalue = False, info = True):
 
     kernels = [donut_kernel(args), lowerleft_kernel(args), horizontal_kernel(args), vertical_kernel(args)]
     l = full_matrix.shape[0]
@@ -140,7 +140,7 @@ def find_peaks(full_matrix, full_norm, compact_idx, args, return_qvalue = False,
         matrix = full_matrix[s:s+window_size, s:s+window_size]
         norm   = full_norm  [s:s+window_size]
 
-        matrix = matrix * args.multiple 
+        matrix = matrix * multiple 
         norm_mat = np.outer(norm, norm)
 
         observed = matrix * norm_mat
@@ -301,7 +301,9 @@ def draw_peaks(matrix, peaks, start, end, file_name):
 if __name__ == '__main__':
     parser = evaluate_parser()
     parser.add_argument('--norm-file', type=str, default = '/data/hic_data/raw/#DATASET/10kb_resolution_intrachromosomal/#CHR/MAPQGE30/#CHR_10kb.KRnorm', help='The path to store norm file. #CHR and #DATASET will automaticly be replaced with the corresponding values.')
-    parser.add_argument('--multiple', type=int, default=255, help='The cutoff used to generate data. Multiply this to the matrices before trying to find loops')
+    
+    parser.add_argument('--predict-multiple', type=int, default=255, help='The cutoff used to generate data. Multiply this to the matrices before trying to find loops')
+    parser.add_argument('--target-multiple', type=int, default=255, help='The cutoff used to generate data. Multiply this to the matrices before trying to find loops')
 
     parser.add_argument('--peak-size', type=int, default = 2)
     parser.add_argument('--donut-size', type=int, default = 5)
@@ -355,25 +357,28 @@ if __name__ == '__main__':
         else:
             target_matrix = full_target_matrix
 
-        
         normFile = args.norm_file
-        norm_dataset = args.dataset[:-9] if args.dataset[-9:] == '_crosschr' else args.dataset
-        norm_dataset = 'CH12-LX' if norm_dataset == 'mESC' else norm_dataset
-        normFile = normFile.replace('#DATASET', norm_dataset)
-        normFile = normFile.replace('#CHR', 'chr'+str(chr))
 
-        norm = open(normFile, 'r').readlines()
-        norm = np.array(list(map(float, norm)))
-        norm[np.isnan(norm)] = 1
+        if normFile != 'none':
+            norm_dataset = args.dataset[:-9] if args.dataset[-9:] == '_crosschr' else args.dataset
+            norm_dataset = 'CH12-LX' if norm_dataset == 'mESC' else norm_dataset
+            normFile = normFile.replace('#DATASET', norm_dataset)
+            normFile = normFile.replace('#CHR', 'chr'+str(chr))
 
-        tgt_peak, tgt_qvalue = find_peaks(target_matrix, norm, compact_idx, args, return_qvalue=True)
+            norm = open(normFile, 'r').readlines()
+            norm = np.array(list(map(float, norm)))
+            norm[np.isnan(norm)] = 1
+        else:
+            norm = np.ones(full_pred_matrix.shape[-1])
+
+        tgt_peak, tgt_qvalue = find_peaks(target_matrix, norm, compact_idx, args.target_multiple, args, return_qvalue=True)
         target_loop_counts.append(len(tgt_peak))
-        # draw_peaks(target_matrix, tgt_peak, start = 100, end = 140, file_name=os.path.join(save_dir, f'chr{chr}_tgt.pdf'))
+        # draw_peaks(target_matrix, tgt_peak,  start = 2000, end = 4000, file_name=os.path.join(save_dir, f'chr{chr}_tgt.pdf'))
         # draw_peaks(tgt_qvalue, tgt_peak, start = 100, end = 140, file_name=os.path.join(save_dir, f'chr{chr}_tgt_qvalue.pdf'))
 
-        pred_peak, pred_qvalue = find_peaks(pred_matrix, norm, compact_idx, args, return_qvalue=True)
+        pred_peak, pred_qvalue = find_peaks(pred_matrix, norm, compact_idx, args.predict_multiple, args, return_qvalue=True)
         predict_loop_counts.append(len(pred_peak))
-        # draw_peaks(pred_matrix, pred_peak, start = 100, end = 140, file_name=os.path.join(save_dir, f'chr{chr}_pred.pdf'))
+        # draw_peaks(pred_matrix,   pred_peak, start = 2000, end = 4000, file_name=os.path.join(save_dir, f'chr{chr}_pred.pdf'))
         # draw_peaks(pred_qvalue, pred_peak, start = 100, end = 140, file_name=os.path.join(save_dir, f'chr{chr}_pred_qvalue.pdf'))
         # draw_peaks(pred_qvalue, pred_peak, start = 100, end = 140, file_name=os.path.join(save_dir, f'chr{chr}_pred_qvalue.pdf'))
 

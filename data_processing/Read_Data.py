@@ -19,10 +19,10 @@ def read_data(data_file, norm_file, out_dir, resolution):
     filename = os.path.basename(data_file).split('.')[0] + '.npz'
     out_file = os.path.join(out_dir, filename)
     try:
-        HiC, idx = readcoo2mat(data_file, norm_file, resolution)
+        HiC, norm, idx = readcoo2mat(data_file, norm_file, resolution)
     except:
         print(f'Abnormal file: {norm_file}')
-    np.savez_compressed(out_file, hic=HiC, compact=idx)
+    np.savez_compressed(out_file, hic=HiC, norm=norm, compact=idx)
     print('Saving file:', out_file)
 
 

@@ -56,6 +56,21 @@ def chr_digit(filename):
         n = int(chrn)
     return n
 
+def hic_data_read_parser():
+    parser = argparse.ArgumentParser(description='Read data from .hic files.', add_help=False)
+    req_args = parser.add_argument_group('Required Arguments')
+    req_args.add_argument('-c', dest='cell_line', help='REQUIRED: Cell line for analysis[example:GM12878]',
+                          required=True)
+
+    misc_args = parser.add_argument_group('Miscellaneous Arguments')
+    misc_args.add_argument('-hr', dest='high_res', help='High resolution specified[default:10kb]',
+                           default='10kb', choices=res_map.keys())
+    misc_args.add_argument('-n', dest='norm_file', help='The normalization file for raw data[default:KRnorm]',
+                           default='KRnorm', choices=['KRnorm', 'SQRTVCnorm', 'VCnorm'])
+    parser.add_argument(*help_opt[0], **help_opt[1])
+
+    return parser
+
 
 def data_read_parser():
     parser = argparse.ArgumentParser(description='Read raw data from Rao\'s Hi-C.', add_help=False)

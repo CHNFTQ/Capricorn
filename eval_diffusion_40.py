@@ -41,11 +41,19 @@ get_digit = lambda x: int(''.join(list(filter(str.isdigit, x))))
 
 def filename_parser(filename):
     info_str = filename.split('.')[0].split('_')
-    chunk = get_digit(info_str[4])
-    stride = get_digit(info_str[5])
-    diagonal_stride = get_digit(info_str[6])
-    bound = get_digit(info_str[7])
-    scale = 1 if info_str[8] == 'nonpool' else get_digit(info_str[8])
+    for info in info_str:
+        if info[:1] == 'c':
+            chunk = get_digit(info)
+        if info[:1] == 's':
+            stride = get_digit(info)
+        if info[:2] == 'ds':
+            diagonal_stride = get_digit(info)
+        if info[:1] == 'b':
+            bound = get_digit(info)
+        if info == 'nonpool':
+            scale = 1
+            #currently only support scale = 1
+
     return chunk, stride, diagonal_stride, bound, scale
 
 from imagen_pytorch.imagen_pytorch import GaussianDiffusionContinuousTimes, log_snr_to_alpha_sigma, right_pad_dims_to, default, log

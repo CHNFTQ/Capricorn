@@ -118,7 +118,7 @@ if __name__ == '__main__':
     prefix = args.save_prefix
 
     chr_list = set_dict[dataset]
-    abandon_chromosome = abandon_chromosome_dict[cell_line]
+    abandon_chromosome = abandon_chromosome_dict.get(cell_line, [])
     postfix = cell_line.lower() if dataset == 'all' else dataset
     pool_str = 'nonpool' if scale == 1 else f'{pool_type}pool{scale}'
     print(f'Going to read {high_res} and {low_res} data with {trs}, then deviding matrices with {pool_str}')

@@ -13,7 +13,7 @@ def evaluate_parser():
     parser.add_argument('--predict-prefix', type=str, default='')
     parser.add_argument('--predict-caption', type=str, default='hic')
 
-    parser.add_argument('--target-dir', type=str, default='/data/hic_data/target_hic_matrices/GM12878')
+    parser.add_argument('--target-dir', type=str, default='/data/hic_data/mat/GSE174533_1-C11-CB')
     parser.add_argument('--target-resolution', type=str, default='10kb')
     parser.add_argument('--target-prefix', type=str, default='')
     parser.add_argument('--target-caption', type=str, default='hic')
