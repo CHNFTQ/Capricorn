@@ -1,5 +1,7 @@
 # Capricorn
 
+## IMPORTANT: This file needs to be updated. The content inside may temporarily not match the code.
+
 The python implementation of Capricorn. Based on HiCARN (https://github.com/OluwadareLab/HiCARN) and imagen-pytorch (https://github.com/lucidrains/imagen-pytorch).
 
 Following the instructions to run the experiment that use GM12878 cell-line to train and valid, use K562 cell-line to test with the resolution of 10kb and the downsample rate of 16.

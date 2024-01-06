@@ -1,0 +1,8 @@
+__pycache__/
+deprecated/
+
+checkpoints/
+Figures/
+Capricorn_Figures/
+
+juicer_tools.jar
