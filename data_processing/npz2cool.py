@@ -17,6 +17,8 @@ if __name__ == '__main__':
 
     parser.add_argument('--bound', type=int, default=200)
     parser.add_argument('--multiple', type=int, default=255)
+
+    parser.add_argument('-c', '--cell-line', default='GM12878')
     parser.add_argument('-s', dest='dataset', default='test', choices=['train', 'valid', 'test', 'train1', 'valid1', 'test1'], )
     
     parser.add_argument('--genome_id', default = 'hg38')
@@ -26,15 +28,20 @@ if __name__ == '__main__':
     hic_caption = args.hic_caption
     external_norm_file = args.external_norm_file
     res = args.resolution
+    cell_line = args.cell_line
     dataset = args.dataset
     bound = args.bound
     multiple = args.multiple
     resolution = res_map[res]
 
     chr_list = set_dict[dataset]
+    abandon_chromosome = abandon_chromosome_dict.get(cell_line, [])
+
     bins = {"chrom": [], "start": [], "end": []}
     reads = {"bin1_id": [], "bin2_id": [], "count": []}
     for n in tqdm(chr_list):
+        if n in abandon_chromosome:
+            continue
 
         in_file = os.path.join(data_dir, f'chr{n}_{res}.npz')
 

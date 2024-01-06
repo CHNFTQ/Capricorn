@@ -43,8 +43,12 @@ def read_loop_file(file_name):
         
         if row['chrom1'] not in loops:
             loops[row['chrom1']] = []
+        
+        center = ((row['start1']+row['end1'])/2, (row['start2']+row['end2'])/2)
 
-        loops[row['chrom1']].append(((row['start1']+row['end1'])/2, (row['start2']+row['end2'])/2))
+        assert abs(center[1] - center[0]) <= 2000000
+
+        loops[row['chrom1']].append(center)
     
     return loops
 

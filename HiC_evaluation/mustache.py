@@ -1078,7 +1078,7 @@ def main():
         if i == 0:
             with open(args.outdir, 'w') as out_file:
                 out_file.write(
-                    "BIN1_CHR\tBIN1_START\tBIN1_END\tBIN2_CHROMOSOME\tBIN2_START\tBIN2_END\tFDR\tDETECTION_SCALE\n")
+                    "chrom1\tstart1\tend1\tchrom2\tstart2\tend2\tFDR\tDETECTION_SCALE\n")
         if o == []:
             print("{0} loops found for chrmosome={1}, fdr<{2} in {3}sec".format(len(o), chromosome, args.pt,
                                                                                 "%.2f" % (time.time() - start_time)))
