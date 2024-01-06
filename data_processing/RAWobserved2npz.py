@@ -10,9 +10,26 @@ import sys
 import time
 import multiprocessing
 import numpy as np
+import os
+import argparse
+from utils import mkdir, readcoo2mat
+from dataset_informations import *
 
-from utils import readcoo2mat
-from Arg_Parser import *
+def data_read_parser():
+    parser = argparse.ArgumentParser(description='Read raw data from Rao\'s Hi-C.')
+    req_args = parser.add_argument_group('Required Arguments')
+    req_args.add_argument('-c', dest='cell_line', help='REQUIRED: Cell line for analysis[example:GM12878]',
+                          required=True)
+
+    misc_args = parser.add_argument_group('Miscellaneous Arguments')
+    misc_args.add_argument('-hr', dest='high_res', help='High resolution specified[default:10kb]',
+                           default='10kb', choices=res_map.keys())
+    misc_args.add_argument('-q', dest='map_quality', help='Mapping quality of raw data[default:MAPQGE30]',
+                           default='MAPQGE30', choices=['MAPQGE30', 'MAPQG0'])
+    misc_args.add_argument('-n', dest='norm_file', help='The normalization file for raw data[default:KRnorm]',
+                           default='KRnorm', choices=['KRnorm', 'SQRTVCnorm', 'VCnorm'])
+
+    return parser
 
 
 def read_data(data_file, norm_file, out_dir, resolution):

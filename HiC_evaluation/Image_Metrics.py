@@ -8,14 +8,14 @@ import argparse
 import numpy as np
 import torch
 import torch.nn.functional as F
-from math import log10
-from math import exp
+from math import log10, exp
 from tqdm import tqdm
 from HiC_evaluation.utils import *
-from HiC_evaluation.dataset_info import *
-from HiC_evaluation.args import *
+from dataset_informations import *
+from data_processing.Read_npz import read_npz
 import logging
 import os
+import json
 
 def gaussian(width, sigma):
     gauss = torch.Tensor([exp(-(x-width//2)**2 / float(2 * sigma**2)) for x in range(width)])
@@ -74,15 +74,33 @@ def get_ssim(pred_matrix, target_matrix, device="cpu", mask=None, patch_size=200
     return chr_ssim.item()
 
 if __name__ == '__main__':
-    parser = evaluate_parser()
+    parser = argparse.ArgumentParser()
+
+    parser.add_argument('--predict-dir', type=str)
+    parser.add_argument('--predict-resolution', type=str, default='10kb')
+    parser.add_argument('--predict-caption', type=str, default='hic')
+
+    parser.add_argument('--target-dir', type=str, default='/data/hic_data/mat/GM12878')
+    parser.add_argument('--target-resolution', type=str, default='10kb')
+    parser.add_argument('--target-caption', type=str, default='hic')
+
+    parser.add_argument('--cell-line', type=str, default='GM12878')
+    parser.add_argument('-s', dest='dataset', default='test', choices=set_dict.keys(), )
+    
+    parser.add_argument('--bound', type=int, default=200, help='Only evaluate the area within the bounding distance to diagonal')
     args = parser.parse_args()
+
+    bound = args.bound
 
     mse_list = []
     ssim_list = []
     psnr_list = [] 
 
-    save_dir = os.path.join(args.predict_dir, 'Image_Metrics' if args.save_name is None else args.save_name)
+    save_dir = os.path.join(args.predict_dir, args.predict_resolution, 'Image_Metrics')
     os.makedirs(save_dir, exist_ok=True)
+
+    with open(os.path.join(save_dir, "args.json"), 'w') as f:
+        json.dump(args.__dict__, f, indent=2)
 
     log_file_path = os.path.join(save_dir, "evaluation.log")
 
@@ -94,27 +112,27 @@ if __name__ == '__main__':
         filemode='w', 
     )
 
-    for chr in dataset_chrs[args.dataset]:
-        pred_matrix, target_matrix = read_matrices(args, chr)
+    chr_list = set_dict[args.dataset]
+    abandon_chromosome = abandon_chromosome_dict.get(args.cell_line, [])
 
-        if len(pred_matrix.shape)>=3 :
-            pred_matrix = pred_matrix[0, :, :]
-            print(pred_matrix.shape)
-        if len(target_matrix.shape)>=3 :
-            target_matrix = target_matrix[0, :, :]
+    for n in chr_list:
+        
+        pred_file = os.path.join(args.predict_dir, f'chr{n}_{args.predict_resolution}.npz')
+        
+        pred_matrix, _, _ = read_npz(pred_file, hic_caption = args.predict_caption, bound = bound, include_additional_channels=False)
+        
+        target_file = os.path.join(args.target_dir, f'chr{n}_{args.target_resolution}.npz')
+        
+        target_matrix, _, _ = read_npz(target_file, hic_caption = args.target_caption, bound = bound, include_additional_channels=False)
 
-        if args.bounding:
-            total_size = pred_matrix.shape[-1]
-            mask = np.zeros((total_size, total_size))
+        if args.bound:
+            mask = np.zeros_like(pred_matrix)
             
-            for i in range(total_size):
-                for j in range(max(0, i-args.bounding), min(total_size, i+args.bounding+1)):
+            for i in range(mask.shape[0]):
+                for j in range(max(0, i-bound+1), min(mask.shape[1], i+bound)):
                     mask[i][j] = 1
             
-            pred_matrix = pred_matrix * mask
-            target_matrix = target_matrix * mask
-
-            chr_mse = ((pred_matrix - target_matrix) ** 2).mean() * (total_size ** 2) / (mask.sum())
+            chr_mse = (((pred_matrix - target_matrix) ** 2) * mask).sum() / (mask.sum())
             chr_ssim = get_ssim(pred_matrix, target_matrix, mask=mask, device="cuda")
         else:
             chr_mse = ((pred_matrix - target_matrix) ** 2).mean()
@@ -125,9 +143,11 @@ if __name__ == '__main__':
         print_info("MSE for chr"+str(chr)+":"+str(chr_mse))
         print_info("SSIM for chr"+str(chr)+":"+str(chr_ssim))
         print_info("PSNR for chr"+str(chr)+":"+str(chr_psnr))
+        
         mse_list.append(chr_mse)
         ssim_list.append(chr_ssim)
         psnr_list.append(chr_psnr)
+
     print_info('MSE:')
     print_info(str(mse_list))
     print_info('SSIM:')

@@ -1,18 +1,20 @@
 import sys
 import os
-from Arg_Parser import *
+import argparse
+from dataset_informations import *
+from utils import *
 
 def hic_data_read_parser():
-    parser = argparse.ArgumentParser(description='Read data from .hic files.', add_help=False)
+    parser = argparse.ArgumentParser(description='Read data from .hic files.')
     req_args = parser.add_argument_group('Required Arguments')
     req_args.add_argument('-f', dest='hic_file', help='REQUIRED: hic filename', required=True)
+    req_args.add_argument('-name', dest='name', help='REQUIRED: cellline name', required=True)
 
     misc_args = parser.add_argument_group('Miscellaneous Arguments')
     misc_args.add_argument('-hr', dest='high_res', help='High resolution specified[default:10kb]',
                            default='10kb', choices=res_map.keys())
     misc_args.add_argument('-n', dest='norm_type', help='The normalization type chose[default:KRnorm]',
                            default='KRnorm', choices=['KRnorm', 'SQRTVCnorm', 'VCnorm', 'Raw'])
-    parser.add_argument(*help_opt[0], **help_opt[1])
 
     return parser
 
@@ -30,7 +32,7 @@ if __name__ == '__main__':
     print(hic.getGenomeID())
     print(hic.getResolutions())
 
-    out_dir = os.path.join(root_dir, 'mat', os.path.basename(args.hic_file).split('.')[0])
+    out_dir = os.path.join(root_dir, 'mat', args.name)
     mkdir(out_dir)
 
     chr_list = hic.getChromosomes()

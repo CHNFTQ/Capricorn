@@ -6,11 +6,17 @@
 # HiCARN: https://github.com/OluwadareLab/HiCARN
 # --------------------------------------------------------
 
+import os
 import numpy as np
 import pandas as pd
 import torch
 import torch.nn.functional as F
 from scipy.sparse import coo_matrix
+
+def mkdir(out_dir):
+    if not os.path.isdir(out_dir):
+        print(f'Making directory: {out_dir}')
+    os.makedirs(out_dir, exist_ok=True)
 
 def readcoo2mat(cooFile, normFile, resolution):
     """
@@ -122,19 +128,6 @@ def tag2dense(tag, nsize):
     dense_mat = coo_matrix((data, (row, col)), shape=(nsize, nsize)).toarray()
     dense_mat = dense_mat + np.triu(dense_mat, k=1).T
     return dense_mat
-
-
-def downsampling(matrix, down_ratio, verbose=False):
-    """
-    Downsampling method.
-    """
-    if verbose: print(f"[Downsampling] Matrix shape is {matrix.shape}")
-    tag_mat, tag_len = dense2tag(matrix)
-    sample_idx = np.random.choice(tag_len, tag_len // down_ratio)
-    sample_tag = tag_mat[sample_idx]
-    if verbose: print(f'[Downsampling] Sampling 1/{down_ratio} of {tag_len} reads')
-    down_mat = tag2dense(sample_tag, matrix.shape[0])
-    return down_mat
 
 def pooling(mat, scale, pool_type='max', return_array=False, verbose=True):
     mat = torch.tensor(mat).float()

@@ -11,12 +11,30 @@ import numpy as np
 from torch.utils.data import TensorDataset, DataLoader
 from tqdm import tqdm
 import torch
-from Arg_Parser import *
+from dataset_informations import *
 from utils import *
 from imagen_pytorch import Unet, Imagen, ImagenTrainer
 from torch import nn
 import json
 import random
+import argparse
+
+def data_predict_parser():
+    parser = argparse.ArgumentParser(description='Predict data using Capricorn.')
+    req_args = parser.add_argument_group('Required Arguments')
+    req_args.add_argument('-c', dest='cell_line', help='REQUIRED: Cell line for analysis[example: GM12878]',
+                          required=True)
+    req_args.add_argument('-hr', dest='high_res', help='REQUIRED: High resolution specified[example:10kb]',
+                        default='10kb', choices=res_map.keys(), required=True)
+    req_args.add_argument('-f', dest='file_name', help='REQUIRED: Matrix file to be enhanced', required=True)
+    req_args.add_argument('-ckpt', dest='checkpoint', help='REQUIRED: Checkpoint file of Capricorn',
+                          required=True)
+    req_args.add_argument('--diffusion-steps', type=int, help='number of diffusion steps for Capricorn inference',
+                          default=5, )
+    req_args.add_argument('--seed', type=int, default=0)
+
+    return parser
+
 
 def dataloader(data, batch_size=64):
     inputs = torch.tensor(data['data'], dtype=torch.float)
@@ -34,8 +52,9 @@ def get_chr_nums(data):
 def data_info(data):
     indices = data['inds']
     compacts = data['compacts'][()]
+    norms = data['norms'][()]
     sizes = data['sizes'][()]
-    return indices, compacts, sizes
+    return indices, compacts, norms, sizes
 
 get_digit = lambda x: int(''.join(list(filter(str.isdigit, x))))
 
@@ -50,11 +69,8 @@ def filename_parser(filename):
             diagonal_stride = get_digit(info)
         if info[:1] == 'b':
             bound = get_digit(info)
-        if info == 'nonpool':
-            scale = 1
-            #currently only support scale = 1
 
-    return chunk, stride, diagonal_stride, bound, scale
+    return chunk, stride, diagonal_stride, bound
 
 from imagen_pytorch.imagen_pytorch import GaussianDiffusionContinuousTimes, log_snr_to_alpha_sigma, right_pad_dims_to, default, log
 from functools import partial
@@ -170,17 +186,18 @@ def predictor(loader, ckpt_file, diffusion_steps, device, data_file):
     
     return hics
 
-def save_data(hic, compact, size, file):
+def save_data(hic, compact, norm, size, file):
     hic = spreadM(hic, compact, size, convert_int=False, verbose=True)
-    np.savez_compressed(file, hic=hic, compact=compact)
+    np.savez_compressed(file, hic=hic, compact=compact, norm=norm)
     print('Saving file:', file)
+
+def save_data_chr(key):
+    file = os.path.join(out_dir, f'chr{key}_{high_res}.npz')
+    save_data(hics[key], compacts[key], norms[key], sizes[key], file)
 
 
 if __name__ == '__main__':
     parser = data_predict_parser()
-    parser.add_argument('--diffusion-steps', type=int, default=5, help='number of diffusion steps to use while evaluating')
-    parser.add_argument('--seed', type=int, default=0)
-    parser.add_argument('--root-dir', type=str, default='/data/hic_data')
     args = parser.parse_args(sys.argv[1:])
     
     random.seed(args.seed)
@@ -190,19 +207,16 @@ if __name__ == '__main__':
     torch.backends.cudnn.deterministic = True
     
     cell_line = args.cell_line
-    low_res = args.low_res
     ckpt_file = args.checkpoint
-    cuda = args.cuda
-    model = args.model
+    high_res = args.high_res
     steps = args.diffusion_steps
     data_file = args.file_name
-    root_dir = args.root_dir
 
     in_dir = os.path.join(root_dir, 'data')
     out_dir = os.path.join(ckpt_file.split('.')[0], 'predict', cell_line)
     mkdir(out_dir)
 
-    chunk, stride, diagonal_stride, bound, scale = filename_parser(data_file)
+    chunk, stride, diagonal_stride, bound = filename_parser(data_file)
 
     device = torch.device('cuda' if torch.cuda.is_available() else 'cpu')
     print("CUDA available? ", torch.cuda.is_available())
@@ -212,13 +226,9 @@ if __name__ == '__main__':
     data = np.load(os.path.join(in_dir, data_file), allow_pickle=True)
     loader = dataloader(data)
 
-    indices, compacts, sizes = data_info(data)
+    indices, compacts, norms, sizes = data_info(data)
 
     hics = predictor(loader, ckpt_file, steps, device, data)
 
-    def save_data_n(key):
-        file = os.path.join(out_dir, f'chr{key}_{"10kb"}.npz')
-        save_data(hics[key], compacts[key], sizes[key], file)
-
     for key in compacts.keys():
-        save_data_n(key)
+        save_data_chr(key)

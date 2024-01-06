@@ -16,6 +16,7 @@ from matplotlib import pyplot as plt
 import argparse
 import json
 import random
+from dataset_informations import *
 
 cs = np.column_stack
 
@@ -35,9 +36,9 @@ parser.add_argument('--chunk', type=int, default = 40, help='The size of submatr
 parser.add_argument('--stride', type=int, default = 40, help='The stride to slice submatrices along x and y axis')
 parser.add_argument('--train-diagonal-stride', type=int, default = 40, help='When training, allow the submatrix slicing window slides along the main diagonal direction with this stride')
 parser.add_argument('--bound', type=int, default = 200, help='Only consider elements whose distance to the main diagonal is smaller to this boundary. Only keep submatrices with elements in this boundary.')
-parser.add_argument('--pool', type=str, default = 'nonpool', help='Whether pooling the downsampled data to actually change the resolution.')
-parser.add_argument('--dataset', type=str, default = 'K562', help='The dataset to use')
-parser.add_argument('--train-cross-chromosome', action='store_true')
+parser.add_argument('--cell-line', type=str, default = 'GM12878', help='The cell line to train on')
+parser.add_argument('--train-dataset', type=str, default = 'train', choices = set_dict.keys())
+parser.add_argument('--valid-dataset', type=str, default = 'valid', choices = set_dict.keys())
 #train param
 parser.add_argument('--num-epochs', type=int, default = 100)
 parser.add_argument('--batch-size', type=int, default = 32)
@@ -100,7 +101,7 @@ datestr = time.strftime('%m_%d_%H_%M')
 visdom_str = time.strftime('%m%d')
 
 # out_dir: directory storing checkpoint files
-save_name = f'{datestr}_{args.method_name}_{args.dataset}'
+save_name = f'{datestr}_{args.method_name}_{args.cell_line}'
 out_dir = os.path.join(args.save_dir, save_name)
 os.makedirs(out_dir, exist_ok=True)
 
@@ -127,10 +128,10 @@ with open(os.path.join(out_dir, "args.json"), 'w') as f:
 with open(args.weights_file) as f:
     weights = json.load(f)
 
-print('Channel weights: ', weights[args.dataset])
-logging.info(f'Channel weights: {weights[args.dataset]}')
+print('Channel weights: ', weights[args.cell_line])
+logging.info(f'Channel weights: {weights[args.cell_line]}')
 
-channel_weights = np.expand_dims(weights[args.dataset], (0, 2, 3))
+channel_weights = np.expand_dims(weights[args.cell_line], (0, 2, 3))
 
 def data_normalize(data):
     if len(args.reverse_channels) > 0 :
@@ -139,7 +140,7 @@ def data_normalize(data):
     return data
 
 # prepare training dataset
-train_file = os.path.join(data_dir, f'{args.prefix}_{args.resos}_seed{args.data_seed}_c{args.chunk}_s{args.stride}_ds{args.train_diagonal_stride}_b{args.bound}_{args.pool}_{args.dataset}_train{"1" if args.train_cross_chromosome else ""}.npz')
+train_file = os.path.join(data_dir, f'{args.prefix}_{args.resos}_seed{args.data_seed}_c{args.chunk}_s{args.stride}_ds{args.train_diagonal_stride}_b{args.bound}_{args.cell_line}_{args.train_dataset}.npz')
 train = np.load(train_file)
 
 print('Train file: ', train_file)
@@ -152,7 +153,7 @@ train_inds = torch.tensor(train['inds'], dtype=torch.long)
 train_set = TensorDataset(train_data, train_target, train_inds)
 
 # prepare valid dataset
-valid_file = os.path.join(data_dir, f'{args.prefix}_{args.resos}_seed{args.data_seed}_c{args.chunk}_s{args.stride}_ds{args.stride}_b{args.bound}_{args.pool}_{args.dataset}_valid{"1" if args.train_cross_chromosome else ""}.npz')
+valid_file = os.path.join(data_dir, f'{args.prefix}_{args.resos}_seed{args.data_seed}_c{args.chunk}_s{args.stride}_ds{               args.stride}_b{args.bound}_{args.cell_line}_{args.valid_dataset}.npz')
 valid = np.load(valid_file)
 
 print('Valid file: ', valid_file)

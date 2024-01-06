@@ -9,13 +9,40 @@
 import sys
 from typing import Any
 import numpy as np
-from Arg_Parser import *
+from dataset_informations import *
+import argparse
 from utils import *
 from tqdm import tqdm
 
-except_chr = {'hsa': {'X': 23, 23: 'X'}, 'mouse': {'X': 20, 20: 'X'}}
+def data_divider_parser():
+    parser = argparse.ArgumentParser(description='Divide data for train and predict')
+    req_args = parser.add_argument_group('Required Arguments')
+    req_args.add_argument('-c', dest='cell_line', help='REQUIRED: Cell line for analysis[example:GM12878]',
+                          required=True)
+    req_args.add_argument('-hr', dest='high_res', help='REQUIRED: High resolution specified[example:10kb]',
+                          default='10kb', choices=res_map.keys(), required=True)
+    req_args.add_argument('-lr', dest='low_res', help='REQUIRED: Low resolution specified[example:40kb]',
+                          default='10kb_d16', required=True)
+    req_args.add_argument('-s', dest='dataset', help='REQUIRED: Dataset for train/valid/predict(all)',
+                          default='train', choices=set_dict.keys() )
 
-def divide_multichannel(mat, chr_num, chunk_size=40, stride=40, bound=200, diagonal_stride = 40, padding=True, species='hsa', verbose=False):
+    misc_args = parser.add_argument_group('Miscellaneous Arguments')
+    misc_args.add_argument('-trs', '--transform-names', dest='transform_names', type=str, help='List of transforms used. Group transforms should be in the correct order(i.e. the next of Lp should be Lr)',
+                          nargs='+', default = ['HiC', 'OE', '01TAD', 'Lp', 'Lr'])
+    misc_args.add_argument('-pref', '--save-prefix', dest='save_prefix', type=str, help='The prefix to save generated data',
+                          default = 'Multi')
+    misc_args.add_argument('--chunk', dest='chunk', help='REQUIRED: chunk size for dividing[example:40]',
+                              default=40, type=int, )
+    misc_args.add_argument('--stride', dest='stride', help='REQUIRED: stride for dividing[example:40]',
+                              default=40, type=int, )
+    misc_args.add_argument('--diagonal-stride', type=int, help='Allow the submatrices moving along the diagonal to obatin more data. Default: 40, equals to the stride, which means no additional move along diagonal',
+                             default = 40 )
+    misc_args.add_argument('--bound', dest='bound', help='REQUIRED: distance boundary interested[example:201]',
+                              default=200, type=int, )
+
+    return parser
+
+def divide_multichannel(mat, chr_num, chunk_size=40, stride=40, bound=200, diagonal_stride = 40, species='hsa', verbose=False):
     """
     Dividing method.
     """
@@ -68,12 +95,11 @@ def carn_divider(n,
                  chunk=40, 
                  stride=40, 
                  bound=200,
-                 diagonal_stride = 40,
-                 pool_type='max', 
-                 scale=1):
+                 diagonal_stride = 40):
     hic_data = np.load(high_file)
     down_data = np.load(down_file)
     compact_idx = hic_data['compact']
+    norm = hic_data['norm']
     full_size = hic_data['hic'].shape[-1]
 
     hic = hic_data['hic']
@@ -85,33 +111,27 @@ def carn_divider(n,
     hic = compactM(hic, compact_idx)
     down_hic = compactM(down_hic, compact_idx)
     print(f'[Chr{n}]Compacted.')
+
     # Deviding and Pooling    
     div_dhic, div_inds = divide_multichannel(down_hic, n, chunk, stride, bound, diagonal_stride)
-    div_dhic = pooling(div_dhic, scale, pool_type=pool_type, verbose=False).numpy()
 
     div_hhic, _ = divide_multichannel(hic, n, chunk, stride, bound, diagonal_stride, verbose=True)
     print(f'[Chr{n}]Finished.')
-    return n, div_dhic, div_hhic, div_inds, compact_idx, full_size
+    return n, div_dhic, div_hhic, div_inds, compact_idx, norm, full_size
 
 if __name__ == '__main__':
     parser = data_divider_parser()
-    parser.add_argument('--diagonal-stride', type=int, default = 40, help='Allow the submatrices moving along the diagonal to obatin more data. Default: 40, equals to the stride, which means no additional move along diagonal')
-    parser.add_argument('--transform-names', type=str, nargs='+', default = ['HiC', 'OE', '01TAD', 'Lp', 'Lr'], help='List of transforms used. Group transforms should be in the correct order(i.e. the next of Lp should be Lr)')
-    parser.add_argument('--save-prefix', type=str, default = 'Multi')
     args = parser.parse_args(sys.argv[1:])
 
     cell_line = args.cell_line
     high_res = args.high_res
     low_res = args.low_res
-    lr_cutoff = args.lr_cutoff
     dataset = args.dataset
 
     chunk = args.chunk
     stride = args.stride
     bound = args.bound
     diagonal_stride = args.diagonal_stride
-    scale = args.scale
-    pool_type = args.pool_type
 
     trs = args.transform_names
 
@@ -120,8 +140,7 @@ if __name__ == '__main__':
     chr_list = set_dict[dataset]
     abandon_chromosome = abandon_chromosome_dict.get(cell_line, [])
     postfix = cell_line.lower() if dataset == 'all' else dataset
-    pool_str = 'nonpool' if scale == 1 else f'{pool_type}pool{scale}'
-    print(f'Going to read {high_res} and {low_res} data with {trs}, then deviding matrices with {pool_str}')
+    print(f'Going to read {high_res} and {low_res} data with {trs}, then deviding matrices')
 
     # pool_num = 23 if multiprocessing.cpu_count() > 23 else multiprocessing.cpu_count()
 
@@ -138,17 +157,19 @@ if __name__ == '__main__':
             continue
         high_file = os.path.join(data_dir, f'chr{n}_{high_res}.npz')
         down_file = os.path.join(data_dir, f'chr{n}_{low_res}.npz')
-        kwargs = {'scale':scale, 'pool_type':pool_type, 'chunk':chunk, 'stride':stride, 'bound':bound, 'diagonal_stride' : diagonal_stride}
+        kwargs = {'chunk':chunk, 'stride':stride, 'bound':bound, 'diagonal_stride' : diagonal_stride}
         res = carn_divider(n, high_file, down_file, **kwargs)
         results.append(res)
+
     # return: n, div_dhic, div_hhic, div_inds, compact_idx, full_size
     data = np.concatenate([r[1] for r in results])
     target = np.concatenate([r[2] for r in results])
     inds = np.concatenate([r[3] for r in results])
     compacts = {r[0]: r[4] for r in results}
-    sizes = {r[0]: r[5] for r in results}
+    norms = {r[0]: r[5] for r in results}
+    sizes = {r[0]: r[6] for r in results}
 
-    filename = f'{prefix}_{high_res}{low_res}_c{chunk}_s{stride}_ds{diagonal_stride}_b{bound}_{pool_str}_{cell_line}_{postfix}.npz'
+    filename = f'{prefix}_{high_res}{low_res}_c{chunk}_s{stride}_ds{diagonal_stride}_b{bound}_{cell_line}_{postfix}.npz'
     datafile = os.path.join(out_dir, filename)
-    np.savez_compressed(datafile, data=data, target=target, inds=inds, compacts=compacts, sizes=sizes)
+    np.savez_compressed(datafile, data=data, target=target, inds=inds, compacts=compacts, norms=norms, sizes=sizes)
     print('Saving file:', datafile)

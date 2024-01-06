@@ -6,7 +6,7 @@ import numpy as np
 from HiC_evaluation.utils import *
 from HiC_evaluation.dataset_info import *
 from HiC_evaluation.args import *
-from HiC_evaluation.HiCCUPs import find_peaks
+from HiC_evaluation.HiCCUPS import find_peaks
 
 import matplotlib.pyplot as plt
 from matplotlib.colors import ListedColormap

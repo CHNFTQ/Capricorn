@@ -8,7 +8,7 @@ import argparse
 from HiC_evaluation.utils import *
 from HiC_evaluation.dataset_info import *
 from HiC_evaluation.args import *
-from HiC_evaluation.HiCCUPs import *
+from HiC_evaluation.HiCCUPS import *
 
 import warnings
 warnings.filterwarnings("ignore")

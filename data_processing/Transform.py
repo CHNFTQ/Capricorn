@@ -1,27 +1,41 @@
 # This source code is licensed under the license found in the
 # LICENSE file in the root directory of this source tree.
 # --------------------------------------------------------
-# a script to transform 2d HiC matrices to 3d.
+# a script to transform data to include additional biological views.
 # --------------------------------------------------------
 
 import sys
 from typing import Any
 import numpy as np
-from Arg_Parser import *
+from dataset_informations import *
 from utils import *
 from tqdm import tqdm
-from data_processing.oe_normalize import oe_normalize
-from data_processing.TAD import TAD
-from data_processing.TADaggregate import TADaggregate
-from data_processing.insulation_score import insulation_score
-from data_processing.loop_detect import HiCCUPS
+import argparse
+from data_processing.biological_views.oe_normalize import oe_normalize
+from data_processing.biological_views.TAD import TAD
+from data_processing.biological_views.TADaggregate import TADaggregate
+from data_processing.biological_views.insulation_score import insulation_score
+from data_processing.biological_views.loop_detect import HiCCUPS
 
+def data_divider_parser():
+    parser = argparse.ArgumentParser(description='Transform data to include additional biological views.')
+    parser.add_argument('-c', dest='cell_line', help='REQUIRED: Cell line for analysis[example:GM12878]',
+                          required=True)
+    parser.add_argument('-r', dest='res', help='REQUIRED: resolution specified[example:10kb]',
+                          default='10kb', required=True)
+    parser.add_argument('-b', dest='bound', help='REQUIRED: distance boundary interested[example:201]',
+                              default=200, type=int)
+    parser.add_argument('--cutoff', dest='cutoff', type=int, help='cutoff for high resolution maps[example: 255 for High Resolution; 100 for Low Resolution]',
+                          required=True )
+    parser.add_argument('--transform-names', type=str, help='List of transforms used. Group transforms should be in the correct order(i.e. the next of Lp should be Lr)',
+                        nargs='+', default = ['HiC', 'OE', '01TAD', 'Lp', 'Lr'])
 
-except_chr = {'hsa': {'X': 23, 23: 'X'}, 'mouse': {'X': 20, 20: 'X'}}
+    return parser
 
 def transform(file, transforms, n):
     hic_data = np.load(file)
     compact_idx = hic_data['compact']
+    norm = hic_data['norm']
     full_size = hic_data['hic'].shape[0]
 
     print(f'[Chr{n}]File loaded.')
@@ -31,7 +45,7 @@ def transform(file, transforms, n):
     
     print(f'[Chr{n}]Transformation completed.')
 
-    return hic, compact_idx, full_size
+    return hic, compact_idx, norm, full_size
 
 #example of transform
 class hic_normalize:
@@ -56,58 +70,43 @@ class transforms:
 
 if __name__ == '__main__':
     parser = data_divider_parser()
-    parser.add_argument('-hrc', dest='hr_cutoff', help='cutoff for high resolution maps[example:255]',
-                          default=255, type=int)
-    parser.add_argument('--transform-names', type=str, nargs='+', default = ['HiC', 'OE', '01TAD', 'Lp', 'Lr'], help='List of transforms used. Group transforms should be in the correct order(i.e. the next of Lp should be Lr)')
-    args = parser.parse_args(sys.argv[1:])
+    args = parser.parse_args()
 
     cell_line = args.cell_line
-    high_res = args.high_res
-    low_res = args.low_res
-    lr_cutoff = args.lr_cutoff
-    hr_cutoff = args.hr_cutoff
-    dataset = args.dataset
+    res = args.res
+    cutoff = args.cutoff
 
     bound = args.bound
 
     trs = args.transform_names
 
-    hr_transforms = []
-    lr_transforms = []
+    t = []
 
     for id, tr in enumerate(trs):
         if tr == 'HiC':
-            hr_transforms.append(hic_normalize(cutoff=hr_cutoff))
-            lr_transforms.append(hic_normalize(cutoff=lr_cutoff))
+            t.append(hic_normalize(cutoff=cutoff))
         if tr == 'OE':
-            hr_transforms.append(oe_normalize())
-            lr_transforms.append(oe_normalize())
+            t.append(oe_normalize())
         if tr == '01TAD':
-            hr_transforms.append(TAD())
-            lr_transforms.append(TAD())
+            t.append(TAD())
         if tr == 'TADagg':
-            hr_transforms.append(TADaggregate())
-            lr_transforms.append(TADaggregate())
+            t.append(TADaggregate())
         if tr == 'IS':
-            hr_transforms.append(insulation_score(distance_upper_bound = 2*bound, normalize=('ISN' in trs)))
-            lr_transforms.append(insulation_score(distance_upper_bound = 2*bound, normalize=('ISN' in trs)))
+            t.append(insulation_score(distance_upper_bound = 2*bound, normalize=('ISN' in trs)))
         if tr == 'ISN':
             if 'IS' in tr:
                 assert trs[id-1] == 'IS', print('ISN should be the next of IS')
             else:
-                hr_transforms.append(insulation_score(distance_upper_bound = 2*bound, original=False))
-                lr_transforms.append(insulation_score(distance_upper_bound = 2*bound, original=False))
+                t.append(insulation_score(distance_upper_bound = 2*bound, original=False))
         if tr == 'Lr':
             assert trs[id-1] == 'Lp', print('Lr should be the next of Lp')
-            hr_transforms.append(HiCCUPS(distance_upper_bound = 2*bound))
-            lr_transforms.append(HiCCUPS(distance_upper_bound = 2*bound))
+            t.append(HiCCUPS(distance_upper_bound = 2*bound))
 
-    hr_transforms = transforms(hr_transforms)
-    lr_transforms = transforms(lr_transforms)
+    t = transforms(t)
 
-    chr_list = set_dict[dataset]
+    chr_list = set_dict['test']
     abandon_chromosome = abandon_chromosome_dict[cell_line]
-    print(f'Going to read {high_res} and {low_res} data, then transform matrices with {trs}')
+    print(f'Going to read {res} data for {cell_line}, then transform matrices with {trs}')
 
     data_dir = os.path.join(root_dir, 'mat', cell_line)
     out_dir = os.path.join(root_dir, 'multichannel_mat', '_'.join(trs), cell_line)
@@ -115,42 +114,11 @@ if __name__ == '__main__':
 
     means_hr = []
     variances_hr = []
-    means_lr = []
-    variances_lr = []
+
     for n in tqdm(chr_list):
         if n in abandon_chromosome:
             continue
-        high_file = os.path.join(data_dir, f'chr{n}_{high_res}.npz')
-        hic, compact_idx, full_size = transform(high_file, hr_transforms, n)
-        high_save_file = os.path.join(out_dir, f'chr{n}_{high_res}.npz')
-        np.savez_compressed(high_save_file, hic=hic, compact=compact_idx, sizes=full_size)
-
-        elements_in_bound = []
-        for i in range(-bound, bound+1):
-            elements_in_bound.append(np.diagonal(hic, i, -2 ,-1))
-        
-        elements_in_bound = np.concatenate(elements_in_bound, axis=-1)
-        mean = np.mean(elements_in_bound, axis=-1)
-        var = np.var(elements_in_bound, axis=-1)
-        print(f'hr means = {mean}, vars = {var}')
-        means_hr.append(mean)
-        variances_hr.append(var)
-
-        down_file = os.path.join(data_dir, f'chr{n}_{low_res}.npz')
-        hic, compact_idx, full_size = transform(down_file, lr_transforms, n)
-        down_save_file = os.path.join(out_dir, f'chr{n}_{low_res}.npz')
-        np.savez_compressed(down_save_file, hic=hic, compact=compact_idx, sizes=full_size)
-
-        elements_in_bound = []
-        for i in range(-bound, bound+1):
-            elements_in_bound.append(np.diagonal(hic, i, -2 ,-1))
-        
-        elements_in_bound = np.concatenate(elements_in_bound, axis=-1)
-        mean = np.mean(elements_in_bound, axis=-1)
-        var = np.var(elements_in_bound, axis=-1)
-        print(f'lr means = {mean}, vars = {var}')
-        means_lr.append(mean)
-        variances_lr.append(var)
-
-    print(f'hr mean={np.mean(means_hr, axis=0)}, vars={np.mean(variances_hr, axis=0)}')
-    print(f'lr mean={np.mean(means_lr, axis=0)}, vars={np.mean(variances_lr, axis=0)}')
+        high_file = os.path.join(data_dir, f'chr{n}_{res}.npz')
+        hic, compact_idx, norm, full_size = transform(high_file, t, n)
+        high_save_file = os.path.join(out_dir, f'chr{n}_{res}.npz')
+        np.savez_compressed(high_save_file, hic=hic, compact=compact_idx, norm = norm, sizes=full_size)

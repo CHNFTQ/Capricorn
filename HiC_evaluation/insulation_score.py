@@ -8,12 +8,14 @@ import argparse
 import numpy as np
 import os
 from HiC_evaluation.utils import *
-from HiC_evaluation.dataset_info import *
-from HiC_evaluation.args import *
+from dataset_informations import *
+from data_processing.Read_npz import read_npz
 import numpy as np
 import logging
 from utils import compactM
 import sys
+import json
+
 eps=1e-20
 
 def compute_insulation_score(matrix, window_size, extra_channel = None):
@@ -40,7 +42,7 @@ def compute_insulation_score(matrix, window_size, extra_channel = None):
             
     return scores
 
-def compute_bounds(insulation_scores, delta_smooth_size, bound_strength):
+def compute_boundaries(insulation_scores, delta_smooth_size, bound_strength):
     L = len(insulation_scores)
     
     mean_score = np.mean([s for s in insulation_scores if s is not None])
@@ -93,10 +95,10 @@ def compute_bounds(insulation_scores, delta_smooth_size, bound_strength):
 
 def compute_TAD_similarity(pred_matrix, tgt_matrix, args):
     tgt_iscores = compute_insulation_score(tgt_matrix, args.window_size)
-    tgt_bounds = compute_bounds(tgt_iscores, args.delta_smooth_size, args.bound_strength)
+    tgt_bounds = compute_boundaries(tgt_iscores, args.delta_smooth_size, args.bound_strength)
 
     pred_iscores = compute_insulation_score(pred_matrix, args.window_size, args.extra_channels[0])
-    pred_bounds = compute_bounds(pred_iscores, args.delta_smooth_size, args.bound_strength)
+    pred_bounds = compute_boundaries(pred_iscores, args.delta_smooth_size, args.bound_strength)
 
     diff = []
     for ps, ts in zip(pred_iscores, tgt_iscores):
@@ -111,15 +113,7 @@ def compute_TAD_similarity(pred_matrix, tgt_matrix, args):
     ti = iter(tgt_bounds)
     tb = next(ti, None)
     for pb in pred_bounds:
-        while tb is not None and tb < pb-args.boundary_zone_size:
-            # np.set_printoptions(threshold=sys.maxsize)
-            # print(f'T:{tb} (P:{pb}) unmatch')
-            # s = 8
-            # print(np.around(tgt_iscores[tb-s:tb+s+1], decimals=4))
-            # print(np.array2string(tgt_matrix[tb-s:tb+s+1, tb-s:tb+s+1], precision=1, floatmode='fixed'))
-            # print(np.around(pred_iscores[tb-s:tb+s+1], decimals=4))
-            # print(pred_matrix[tb-s:tb+s+1, tb-s:tb+s+1])
-            
+        while tb is not None and tb < pb-args.boundary_zone_size:            
             tb = next(ti, None)
 
         if tb is None: break
@@ -127,15 +121,6 @@ def compute_TAD_similarity(pred_matrix, tgt_matrix, args):
         if abs(pb-tb)<=args.boundary_zone_size:
             matched += 1
             tb = next(ti, None)
-        # else:
-        #     np.set_printoptions(threshold=sys.maxsize)
-        #     print(f'P:{pb} (T:{tb}) unmatch')
-            # s = 8
-            # print(np.around(tgt_iscores[pb-s:pb+s+1], decimals=4))
-            # print(np.array2string(tgt_matrix[pb-s:pb+s+1, pb-s:pb+s+1], precision=1, floatmode='fixed'))
-            # print(np.around(pred_iscores[pb-s:pb+s+1], decimals=4))
-            # print(pred_matrix[pb-s:pb+s+1, pb-s:pb+s+1])
-
     
     lp = len(pred_bounds)
     lt = len(tgt_bounds)
@@ -144,26 +129,43 @@ def compute_TAD_similarity(pred_matrix, tgt_matrix, args):
     return 2*matched/(lp+lt), insu_mse, insu_diff_norm
 
 if __name__ == '__main__':
-    parser = evaluate_parser()
+    parser = argparse.ArgumentParser()
+
+    parser.add_argument('--data-dir', type=str, required = True)
+    parser.add_argument('--hic-caption', type=str, default = 'hic')    
+    parser.add_argument('--external-norm-file', type=str, 
+                        default = None)
+    parser.add_argument('--resolution', type=str, default='10kb')
+
+    parser.add_argument('--bound', type=int, default=200)
+    parser.add_argument('--multiple', type=int, default=255)
+
+    parser.add_argument('-c', '--cell-line', default='GM12878')
+    parser.add_argument('-s', dest='dataset', default='test', choices=set_dict.keys(), )
+
     parser.add_argument('--window-size', type=int, default=50)
     parser.add_argument('--delta-smooth-size', type=int, default=10)
     parser.add_argument('--bound-strength', type=float, default=0.1)
-    parser.add_argument('--boundary-zone-size', type=int, default=3)
     
-    parser.add_argument('--use-extra-channels', action='store_true')
-    parser.add_argument('--extra-channels', nargs='+', type=int, default=[2])
-
     args = parser.parse_args()
-    f1_scores = []
-    insu_mses = []
-    insu_diff_norms = []
 
-    extrachannel_f1_scores = []
-    extrachannel_insu_mses = []
-    extrachannel_insu_diff_norms = []
+    data_dir = args.data_dir
+    hic_caption = args.hic_caption
+    external_norm_file = args.external_norm_file
+    res = args.resolution
+    bound = args.bound
+    multiple = args.multiple
 
-    save_dir = os.path.join(args.predict_dir, 'TAD' if args.save_name is None else args.save_name)
+    cell_line = args.cell_line
+    dataset = args.dataset
+    
+    resolution = res_map[res]
+
+    save_dir = os.path.join(args.predict_dir, args.resolution, 'Insulation')
     os.makedirs(save_dir, exist_ok=True)
+
+    with open(os.path.join(save_dir, "args.json"), 'w') as f:
+        json.dump(args.__dict__, f, indent=2)
 
     log_file_path = os.path.join(save_dir, "evaluation.log")
 
@@ -175,51 +177,40 @@ if __name__ == '__main__':
         filemode='w', 
     )
 
-    for chr in dataset_chrs[args.dataset]:
-        full_pred_matrix, full_target_matrix, compact_idx = read_matrices(args, chr, compact_idx = True)
+    chr_list = set_dict[dataset]
+    abandon_chromosome = abandon_chromosome_dict.get(cell_line, [])
 
-        full_pred_matrix = compactM(full_pred_matrix, compact_idx)
-        full_target_matrix = compactM(full_target_matrix, compact_idx)
+    TAD_counts = []
+    
+    score = open(os.path.join(save_dir, 'insulation_score.txt'), 'w')
+    boundaries = open(os.path.join(save_dir, 'boundaries.txt'), 'w')
 
-        if len(full_pred_matrix.shape)>=3 :
-            pred_matrix = full_pred_matrix[0]
-        else:
-            pred_matrix = full_pred_matrix
-        if len(full_target_matrix.shape)>=3 :
-            target_matrix = full_target_matrix[0]
-        else:
-            target_matrix = full_target_matrix
+    for n in chr_list:
+        if n in abandon_chromosome:
+            continue
 
-        f1_score, insu_mse, insu_diff_norm = compute_TAD_similarity(pred_matrix, target_matrix, args)
-        print_info(f"TAD f1 score for chr {chr} : {f1_score}")
-        print_info(f"Insulation score MSE for chr {chr} : {insu_mse}")
-        print_info(f"Insulation score difference norm for chr {chr} : {insu_diff_norm}")
-        f1_scores.append(f1_score)
-        insu_mses.append(insu_mse)
-        insu_diff_norms.append(insu_diff_norm)
+        in_file = os.path.join(data_dir, f'chr{n}_{res}.npz')
+        
+        matrix, compact_idx, norm = read_npz(in_file, hic_caption=hic_caption, bound = bound, multiple=multiple, include_additional_channels=False)
 
-        if args.use_extra_channels:
-            f1_score, insu_mse, insu_diff_norm = compute_TAD_similarity(full_pred_matrix[ args.extra_channels[0] ], target_matrix, args)
-            print_info(f"[with extra channels]TAD f1 score for chr {chr} : {f1_score}")
-            print_info(f"[with extra channels]Insulation score MSE for chr {chr} : {insu_mse}")
-            print_info(f"[with extra channels]Insulation score difference norm for chr {chr} : {insu_diff_norm}")
-            extrachannel_f1_scores.append(f1_score)
-            extrachannel_insu_mses.append(insu_mse)
-            extrachannel_insu_diff_norms.append(insu_diff_norm)
+        matrix = compactM(matrix, compact_idx)
 
-    print_info(f"TAD f1 scores:{f1_scores}")
-    print_info(f"insulation score MSE:{insu_mses}")
-    print_info(f"insulation score difference norm:{insu_diff_norms}")    
+        insulation_scores = compute_insulation_score(matrix, args.window_size)
+        TAD_boundaries = compute_boundaries(insulation_scores, args.delta_smooth_size, args.bound_strength)
 
-    print_info(f"Average TAD f1 score:{np.mean(f1_scores):.4f}")
-    print_info(f"Average insulation score MSE:{np.mean(insu_mses):.4e}")
-    print_info(f"Average insulation score difference norm:{np.mean(insu_diff_norms):.4e}")
+        TAD_counts.append(len(TAD_boundaries))
+        print_info(f'chr{n}: {len(TAD_boundaries)} TAD boundaries detected.')
 
-    if args.use_extra_channels:
-        print_info(f"[with extra channels]TAD f1 score1s:{extrachannel_f1_scores}")
-        print_info(f"[with extra channels]insulation score MSE:{extrachannel_insu_mses}")
-        print_info(f"[with extra channels]insulation score difference norm:{insu_diff_norms}")    
+        for i,s in enumerate(insulation_scores):
+            score.write(f'chr{n}\t{i*resolution}\t{score}\n')
 
-        print_info(f"[with extra channels]Average TAD f1 score :{np.mean(extrachannel_f1_scores):.4f}")
-        print_info(f"[with extra channels]Average insulation score MSE:{np.mean(extrachannel_insu_mses):.4e}")
-        print_info(f"[with extra channels]Average insulation score difference norm:{np.mean(insu_diff_norms):.4e}")
+        for b in enumerate(TAD_boundaries):
+            boundaries.write(f'chr{n}\t{b*resolution}\n')
+    
+    print_info(f'Chromosome TAD counts: {TAD_counts}')
+    print_info(f'Total TAD counts: {np.sum(TAD_counts)}')
+
+        
+            
+        
+
