@@ -10,6 +10,7 @@ import os
 import argparse
 from HiC_evaluation.utils import *
 from data_processing.Read_npz import read_npz
+from data_processing.Read_external_norm import read_singlechromosome_norm
 from dataset_informations import *
 import matplotlib.pyplot as plt
 from scipy.ndimage import correlate
@@ -257,7 +258,7 @@ if __name__ == '__main__':
     parser.add_argument('--data-dir', type=str, required = True)
     parser.add_argument('--hic-caption', type=str, default = 'hic')
     parser.add_argument('--external-norm-file', type=str, 
-                        default = '/data/hic_data/raw/GM12878/10kb_resolution_intrachromosomal/#(CHR)/MAPQGE30/#(CHR)_10kb.KRnorm')
+                        default = '/data/hic_data/raw/#(CELLLINE)/10kb_resolution_intrachromosomal/#(CHR)/MAPQGE30/#(CHR)_10kb.KRnorm')
     parser.add_argument('--resolution', type=str, default='10kb')
 
     parser.add_argument('--bound', type=int, default=200)
@@ -287,7 +288,7 @@ if __name__ == '__main__':
     cell_line = args.cell_line
     dataset = args.dataset
     
-    resolution = res_map[res]
+    resolution = res_map[res.split('_')[0]]
 
     peak_size = args.peak_size
     donut_size = args.donut_size
@@ -328,14 +329,9 @@ if __name__ == '__main__':
         
         matrix, compact_idx, norm = read_npz(in_file, hic_caption=hic_caption, bound = bound, multiple=multiple, include_additional_channels=False)
 
-        if external_norm_file is not None:
+        if external_norm_file != 'NONE':
             if '#(CHR)' in external_norm_file:
-                CHR_norm_File = external_norm_file
-                CHR_norm_File = CHR_norm_File.replace('#(CHR)', 'chr'+str(n))
-
-                norm = open(CHR_norm_File, 'r').readlines()
-                norm = np.array(list(map(float, norm)))
-                norm[np.isnan(norm)] = 1
+                norm = read_singlechromosome_norm(external_norm_file, n, cell_line)
             else:
                 raise NotImplementedError
 

@@ -20,11 +20,11 @@ def data_divider_parser():
     req_args.add_argument('-c', dest='cell_line', help='REQUIRED: Cell line for analysis[example:GM12878]',
                           required=True)
     req_args.add_argument('-hr', dest='high_res', help='REQUIRED: High resolution specified[example:10kb]',
-                          default='10kb', choices=res_map.keys(), required=True)
+                          default='10kb', choices=res_map.keys())
     req_args.add_argument('-lr', dest='low_res', help='REQUIRED: Low resolution specified[example:40kb]',
-                          default='10kb_d16', required=True)
+                          default='10kb_d16_seed0')
     req_args.add_argument('-s', dest='dataset', help='REQUIRED: Dataset for train/valid/predict(all)',
-                          default='train', choices=set_dict.keys() )
+                        choices=set_dict.keys(), required = True )
 
     misc_args = parser.add_argument_group('Miscellaneous Arguments')
     misc_args.add_argument('-trs', '--transform-names', dest='transform_names', type=str, help='List of transforms used. Group transforms should be in the correct order(i.e. the next of Lp should be Lr)',

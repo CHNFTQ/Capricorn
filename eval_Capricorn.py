@@ -25,13 +25,15 @@ def data_predict_parser():
     req_args.add_argument('-c', dest='cell_line', help='REQUIRED: Cell line for analysis[example: GM12878]',
                           required=True)
     req_args.add_argument('-hr', dest='high_res', help='REQUIRED: High resolution specified[example:10kb]',
-                        default='10kb', choices=res_map.keys(), required=True)
+                        default='10kb', required=True)
     req_args.add_argument('-f', dest='file_name', help='REQUIRED: Matrix file to be enhanced', required=True)
     req_args.add_argument('-ckpt', dest='checkpoint', help='REQUIRED: Checkpoint file of Capricorn',
                           required=True)
-    req_args.add_argument('--diffusion-steps', type=int, help='number of diffusion steps for Capricorn inference',
+    
+    misc_args = parser.add_argument_group('Miscellaneous Arguments')
+    misc_args.add_argument('--diffusion-steps', type=int, help='number of diffusion steps for Capricorn inference',
                           default=5, )
-    req_args.add_argument('--seed', type=int, default=0)
+    misc_args.add_argument('--seed', type=int, default=0)
 
     return parser
 
@@ -109,7 +111,7 @@ def predictor(loader, ckpt_file, diffusion_steps, device, data_file):
     with open(args['weights_file']) as f:
         weights = json.load(f)
     
-    channel_weights = np.expand_dims(weights[args['dataset']], (0, 2, 3))
+    channel_weights = np.expand_dims(weights[args['cell_line']], (0, 2, 3))
     channel_weights = torch.from_numpy(channel_weights).to(device).float()
 
     def data_normalize(data):

@@ -76,15 +76,15 @@ def get_ssim(pred_matrix, target_matrix, device="cpu", mask=None, patch_size=200
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
 
-    parser.add_argument('--predict-dir', type=str)
+    parser.add_argument('-p', '--predict-dir', type=str)
     parser.add_argument('--predict-resolution', type=str, default='10kb')
     parser.add_argument('--predict-caption', type=str, default='hic')
 
-    parser.add_argument('--target-dir', type=str, default='/data/hic_data/mat/GM12878')
+    parser.add_argument('-t', '--target-dir', type=str, default='/data/hic_data/multichannel_mat/HiC/GM12878')
     parser.add_argument('--target-resolution', type=str, default='10kb')
     parser.add_argument('--target-caption', type=str, default='hic')
 
-    parser.add_argument('--cell-line', type=str, default='GM12878')
+    parser.add_argument('-c', '--cell-line', type=str, default='GM12878')
     parser.add_argument('-s', dest='dataset', default='test', choices=set_dict.keys(), )
     
     parser.add_argument('--bound', type=int, default=200, help='Only evaluate the area within the bounding distance to diagonal')
@@ -116,7 +116,9 @@ if __name__ == '__main__':
     abandon_chromosome = abandon_chromosome_dict.get(args.cell_line, [])
 
     for n in chr_list:
-        
+        if n in abandon_chromosome:
+            continue
+
         pred_file = os.path.join(args.predict_dir, f'chr{n}_{args.predict_resolution}.npz')
         
         pred_matrix, _, _ = read_npz(pred_file, hic_caption = args.predict_caption, bound = bound, include_additional_channels=False)
@@ -140,9 +142,9 @@ if __name__ == '__main__':
 
         chr_psnr = 10 * log10(1 / (chr_mse + 1e-10))
 
-        print_info("MSE for chr"+str(chr)+":"+str(chr_mse))
-        print_info("SSIM for chr"+str(chr)+":"+str(chr_ssim))
-        print_info("PSNR for chr"+str(chr)+":"+str(chr_psnr))
+        print_info("MSE for chr"+str(n)+":"+str(chr_mse))
+        print_info("SSIM for chr"+str(n)+":"+str(chr_ssim))
+        print_info("PSNR for chr"+str(n)+":"+str(chr_psnr))
         
         mse_list.append(chr_mse)
         ssim_list.append(chr_ssim)
