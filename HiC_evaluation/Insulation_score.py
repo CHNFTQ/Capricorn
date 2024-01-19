@@ -42,7 +42,7 @@ def compute_insulation_score(matrix, window_size, extra_channel = None):
             
     return scores
 
-def compute_boundaries(insulation_scores, delta_smooth_size, bound_strength):
+def compute_boundaries(insulation_scores, delta_smooth_size, bound_strength, return_bound_strength = False):
     L = len(insulation_scores)
     
     mean_score = np.mean([s for s in insulation_scores if s is not None])
@@ -61,8 +61,8 @@ def compute_boundaries(insulation_scores, delta_smooth_size, bound_strength):
         for j in range(delta_smooth_size):
             if i+1+j<L and normalized_scores[i+1+j] is not None:
                 right.append(normalized_scores[i+1+j])
-            if i-j>=0 and normalized_scores[i-j] is not None:
-                left.append(normalized_scores[i-j])
+            if i-1-j>=0 and normalized_scores[i-1-j] is not None:
+                left.append(normalized_scores[i-1-j])
         if len(left) == 0 or len(right) == 0:
             delta.append(None)
         else:
@@ -80,53 +80,24 @@ def compute_boundaries(insulation_scores, delta_smooth_size, bound_strength):
 
     bounds = []
     for minima in minimas:
-        l = minima-1
+        l = minima - 1
         while delta[l-1] is not None and delta[l-1] <= delta[l]:
             l -= 1
         
-        r = minima
+        r = minima + 1
         while delta[r+1] is not None and delta[r+1] >= delta[r]:
             r += 1
 
+        if (delta[r] is None) or (delta[l] is None): continue
+
         if delta[r] - delta[l] >= bound_strength:
-            bounds.append(minima)
+            if return_bound_strength:
+                bounds.append((minima, delta[r] - delta[l]))
+            else:
+                bounds.append(minima)
+            
         
     return bounds
-
-def compute_TAD_similarity(pred_matrix, tgt_matrix, args):
-    tgt_iscores = compute_insulation_score(tgt_matrix, args.window_size)
-    tgt_bounds = compute_boundaries(tgt_iscores, args.delta_smooth_size, args.bound_strength)
-
-    pred_iscores = compute_insulation_score(pred_matrix, args.window_size, args.extra_channels[0])
-    pred_bounds = compute_boundaries(pred_iscores, args.delta_smooth_size, args.bound_strength)
-
-    diff = []
-    for ps, ts in zip(pred_iscores, tgt_iscores):
-        if ts is not None:
-            assert ps is not None
-            diff.append(ps-ts)
-    insu_mse = np.mean(np.square(diff))
-    insu_diff_norm = np.linalg.norm(diff, ord=2)
-
-    matched = 0
-
-    ti = iter(tgt_bounds)
-    tb = next(ti, None)
-    for pb in pred_bounds:
-        while tb is not None and tb < pb-args.boundary_zone_size:            
-            tb = next(ti, None)
-
-        if tb is None: break
-
-        if abs(pb-tb)<=args.boundary_zone_size:
-            matched += 1
-            tb = next(ti, None)
-    
-    lp = len(pred_bounds)
-    lt = len(tgt_bounds)
-
-    print_info(f'predicted bounds: {lp}, target bounds: {lt}, matched bounds: {matched}')
-    return 2*matched/(lp+lt), insu_mse, insu_diff_norm
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
@@ -159,9 +130,9 @@ if __name__ == '__main__':
     cell_line = args.cell_line
     dataset = args.dataset
     
-    resolution = res_map[res]
+    resolution = res_map[res.split('_')[0]]
 
-    save_dir = os.path.join(args.predict_dir, args.resolution, 'Insulation')
+    save_dir = os.path.join(data_dir, res, 'Insulation_score')
     os.makedirs(save_dir, exist_ok=True)
 
     with open(os.path.join(save_dir, "args.json"), 'w') as f:
@@ -182,8 +153,11 @@ if __name__ == '__main__':
 
     TAD_counts = []
     
-    score = open(os.path.join(save_dir, 'insulation_score.txt'), 'w')
-    boundaries = open(os.path.join(save_dir, 'boundaries.txt'), 'w')
+    scores = open(os.path.join(save_dir, 'insulation_score.bed'), 'w')
+    scores.write('chrom\tstart\tend\tscore\n')
+
+    boundaries = open(os.path.join(save_dir, 'boundaries.bed'), 'w')
+    boundaries.write('chrom\tstart\tend\tscore\n')
 
     for n in chr_list:
         if n in abandon_chromosome:
@@ -196,16 +170,16 @@ if __name__ == '__main__':
         matrix = compactM(matrix, compact_idx)
 
         insulation_scores = compute_insulation_score(matrix, args.window_size)
-        TAD_boundaries = compute_boundaries(insulation_scores, args.delta_smooth_size, args.bound_strength)
+        TAD_boundaries = compute_boundaries(insulation_scores, args.delta_smooth_size, args.bound_strength, return_bound_strength=True)
 
         TAD_counts.append(len(TAD_boundaries))
         print_info(f'chr{n}: {len(TAD_boundaries)} TAD boundaries detected.')
 
-        for i,s in enumerate(insulation_scores):
-            score.write(f'chr{n}\t{i*resolution}\t{score}\n')
+        for i, s in enumerate(insulation_scores):
+            scores.write(f'chr{n}\t{i*resolution}\t{(i+1)*resolution}\t{s}\n')
 
-        for b in enumerate(TAD_boundaries):
-            boundaries.write(f'chr{n}\t{b*resolution}\n')
+        for b, s in TAD_boundaries:
+            boundaries.write(f'chr{n}\t{b*resolution}\t{(b+1)*resolution}\t{s}\n')
     
     print_info(f'Chromosome TAD counts: {TAD_counts}')
     print_info(f'Total TAD counts: {np.sum(TAD_counts)}')

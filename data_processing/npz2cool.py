@@ -21,9 +21,9 @@ if __name__ == '__main__':
     parser.add_argument('--multiple', type=int, default=255)
 
     parser.add_argument('-c', '--cell-line', default='GM12878')
-    parser.add_argument('-s', dest='dataset', default='test', choices=['train', 'valid', 'test', 'train1', 'valid1', 'test1'], )
+    parser.add_argument('-s', '--dataset', default='test', choices=['train', 'valid', 'test', 'train1', 'valid1', 'test1'], )
     
-    parser.add_argument('--genome_id', default = 'hg38')
+    parser.add_argument('--genome_id', default = 'hg19')
     args = parser.parse_args()
 
     data_dir = args.data_dir
@@ -34,7 +34,7 @@ if __name__ == '__main__':
     dataset = args.dataset
     bound = args.bound
     multiple = args.multiple
-    resolution = res_map[res]
+    resolution = res_map[res.split('_')[0]]
 
     chr_list = set_dict[dataset]
     abandon_chromosome = abandon_chromosome_dict.get(cell_line, [])
