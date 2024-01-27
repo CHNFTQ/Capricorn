@@ -144,8 +144,7 @@ if __name__ == '__main__':
 
     # pool_num = 23 if multiprocessing.cpu_count() > 23 else multiprocessing.cpu_count()
 
-    data_dir = os.path.join(root_dir, 'multichannel_mat', '_'.join(trs), cell_line)
-    out_dir = os.path.join(root_dir, 'data')
+    out_dir = os.path.join(root_dir, data_dir)
     mkdir(out_dir)
 
     # start = time.time()

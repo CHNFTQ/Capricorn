@@ -35,7 +35,7 @@ def readcoo2mat(cooFile, normFile, resolution):
     mat = mat / norm
     mat = mat.T / norm
     HiC = mat + np.tril(mat, -1).T
-    return HiC.astype(int), norm, compact_idx
+    return HiC, norm, compact_idx
 
 # Modified: add multichannel support
 def compactM(matrix, compact_idx, verbose=False):
@@ -107,6 +107,7 @@ def dense2tag(matrix):
     """
     Converts a square matrix (dense) to coo-based tag matrix.
     """
+    matrix = np.rint(matrix, dtype=float).astype('int')
     matrix = np.triu(matrix)
     tag_len = np.sum(matrix)
     tag_mat = np.zeros((tag_len, 2), dtype=int)

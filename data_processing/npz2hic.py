@@ -1,3 +1,9 @@
+# This source code is licensed under the license found in the
+# LICENSE file in the root directory of this source tree.
+# --------------------------------------------------------
+# a script to help convert .npz files to .hic files.
+# --------------------------------------------------------
+
 import argparse
 import os
 import numpy as np
@@ -13,7 +19,7 @@ if __name__ == '__main__':
     
     parser.add_argument('--norm-name', type=str, default = 'NONE')
     parser.add_argument('--external-norm-file', type=str, 
-                        default = '/data/hic_data/raw/#(CELLLINE)/10kb_resolution_intrachromosomal/#(CHR)/MAPQGE30/#(CHR)_10kb.KRnorm')
+                        default = f'{root_dir}/{RAW_dir}/#(CELLLINE)/10kb_resolution_intrachromosomal/#(CHR)/MAPQGE30/#(CHR)_10kb.KRnorm')
 
     parser.add_argument('--resolution', type=str, default='10kb')
 

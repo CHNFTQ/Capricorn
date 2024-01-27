@@ -64,8 +64,8 @@ if __name__ == '__main__':
     low_res = args.low_res
     ratio = args.ratio
 
-    data_dir = os.path.join(root_dir, 'mat', cell_line)
-    in_files = [os.path.join(data_dir, f) for f in os.listdir(data_dir) if f.find(high_res) >= 0 and f.find('_d') == -1]
+    data_dir = os.path.join(root_dir, hic_matrix_dir, cell_line)
+    in_files = [os.path.join(data_dir, f) for f in os.listdir(data_dir) if f.find(f'{high_res}.npz') >= 0]
     in_files = sorted(in_files)
 
     print(f'Generating {low_res} files from {high_res} files by {ratio}x downsampling.')

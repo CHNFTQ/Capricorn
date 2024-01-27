@@ -1,3 +1,9 @@
+# This source code is licensed under the license found in the
+# LICENSE file in the root directory of this source tree.
+# --------------------------------------------------------
+# a script to help read from npz format hic matrices.
+# --------------------------------------------------------
+
 import numpy as np
 
 def read_npz(

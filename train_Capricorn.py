@@ -26,7 +26,6 @@ print("CUDA available? ", torch.cuda.is_available())
 print("Device being used: ", device)
 
 parser = argparse.ArgumentParser()
-parser.add_argument('--root-dir', type=str, default= '/data/hic_data')
 parser.add_argument('--seed', type=int, default=0, help='The seed to train the model')
 # data param
 parser.add_argument('--prefix', type=str, default= 'Multi', help='The prefix of the data files')
@@ -95,7 +94,7 @@ imagen = Imagen(
 trainer = ImagenTrainer(imagen, cosine_decay_max_steps=args.cosine_decay_max_steps).cuda()    
 
 # data_dir: directory storing processed data
-data_dir = os.path.join(args.root_dir, 'data')
+data_dir = os.path.join(root_dir, data_dir)
 
 datestr = time.strftime('%m_%d_%H_%M')
 visdom_str = time.strftime('%m%d')
@@ -186,9 +185,6 @@ for epoch in range(1, args.num_epochs + 1):
 
         batch_size = data.size(0)
         train_result['nsamples'] += batch_size
-
-        # print(data.shape)
-        # print(target.shape)
         
         loss = trainer(target, cond_images = data, unet_number = args.train_unet)
         trainer.update(unet_number = args.train_unet)

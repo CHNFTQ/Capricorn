@@ -4,8 +4,6 @@ import argparse
 import os
 import numpy as np
 from HiC_evaluation.utils import *
-from HiC_evaluation.dataset_info import *
-from HiC_evaluation.args import *
 from HiC_evaluation.HiCCUPS import find_peaks
 
 import matplotlib.pyplot as plt
@@ -28,22 +26,28 @@ def plt_submatrix(matrix, start, end):
     return ax
 
 if __name__ == '__main__':
-    parser = evaluate_parser()
-    parser.add_argument('--method-name', type=str, default = 'HR')
-    parser.add_argument('--chr', type=int, default=17)
-    parser.add_argument('--start', type=int, default=4730)
-    parser.add_argument('--end', type=int, default=4810)
-    parser.add_argument('--plot-loop', action='store_true')
+    parser = 
+    parser.add_argument('--data-dir', type=str, required = True)
+    parser.add_argument('--hic-caption', type=str, default = 'hic')
+    parser.add_argument('--external-norm-file', type=str, 
+                        default = '/data/hic_data/raw/#(CELLLINE)/10kb_resolution_intrachromosomal/#(CHR)/MAPQGE30/#(CHR)_10kb.KRnorm')
+    parser.add_argument('--resolution', type=str, default='10kb')
 
-    parser.add_argument('--norm-file', type=str, default = '/data/hic_data/raw/#DATASET/10kb_resolution_intrachromosomal/#CHR/MAPQGE30/#CHR_10kb.KRnorm')
+    parser.add_argument('--bound', type=int, default=200)
+    parser.add_argument('--multiple', type=int, default=255)
+
+    parser.add_argument('-c', '--cell-line', default='GM12878')
+    parser.add_argument('-s', dest='dataset', default='test', choices=set_dict.keys(), )
+
     parser.add_argument('--peak-size', type=int, default = 2)
-    parser.add_argument('--donut-size', type=int, default = 5)
+    parser.add_argument('--min-donut-size', type=int, default = 5)
+    parser.add_argument('--max-donut-size', type=int, default = 5)
+    parser.add_argument('--min-reads', type=int, default = 16)
     parser.add_argument('--lambda-step', type=float, default=2**(1/3))
     parser.add_argument('--FDR', type=float, default=0.1)
     parser.add_argument('--clustering-boundary', type=float, default=2)
-    parser.add_argument('--gap-filter-range', type=int, default=5)
-    parser.add_argument('--multiple', type=int, default=255)
     parser.add_argument('--thresholds', nargs='+', type=float, default=[1.75, 1.75, 1.5, 1.5, 2])
+    parser.add_argument('--gap-filter-range', type=int, default=5)
     parser.add_argument('--singleton-qvalue', type=float, default=0.02)
 
     args = parser.parse_args()
@@ -53,7 +57,6 @@ if __name__ == '__main__':
 
     start = args.start
     end = args.end
-
     
     pred_matrix, target_matrix, compact_idx = read_matrices(args, args.chr, compact_idx=True)
 

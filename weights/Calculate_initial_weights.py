@@ -25,9 +25,9 @@ def channel_weights_parser():
     req_args.add_argument('-trs', '--transform-names', dest='transform_names', type=str, help='List of transforms used. Group transforms should be in the correct order(i.e. the next of Lp should be Lr)',
                           nargs='+', default = ['HiC', 'OE', '01TAD', 'Lp', 'Lr'], required=True)
     req_args.add_argument('-sd', '--seeds', dest='seeds', type=str, help='List of seeds used. ',
-                          nargs='+', default = [0, 1, 2, 3, 4, 5, 6, 7, 8, 9], required=True)
-    req_args.add_argument('--bound', dest='bound', help='REQUIRED: distance boundary interested[example:201]',
-                              default=201, type=int, required=True)
+                          nargs='+', default = [0, 1, 2, 3, 4], required=True)
+    req_args.add_argument('-b', '--bound', dest='bound', help='REQUIRED: distance boundary interested[example:200]',
+                              default=200, type=int, required=True)
 
     return parser
 
@@ -53,7 +53,7 @@ if __name__ == '__main__':
         for chan in range(channel_num):
             a = []
             for seed in seeds:
-                out_dir = os.path.join(root_dir, 'multichannel_mat', '_'.join(trs), cell_line)
+                out_dir = os.path.join(root_dir, multichannel_matrix_dir, '_'.join(trs), cell_line)
                 a.append(np.load(f"{out_dir}/chr{chro}_{low_res}_{seed}.npz")['hic'][chan,:,:])
 
             if chan == 0:

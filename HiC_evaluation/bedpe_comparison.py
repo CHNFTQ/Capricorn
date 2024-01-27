@@ -1,3 +1,9 @@
+# This source code is licensed under the license found in the
+# LICENSE file in the root directory of this source tree.
+# --------------------------------------------------------
+# Compare two bedpe file which both include areas on chromosomes. Report statistics about them.
+# --------------------------------------------------------
+
 import pandas as pd
 import argparse
 import numpy as np
@@ -5,17 +11,17 @@ from HiC_evaluation.utils import *
 from dataset_informations import *
 from scipy import stats
 
-def area_similarity(pred_peaks, tgt_peaks, matching_scope=5.0, norm_ord = 2, dynamic_scope = False ,info=True):
-    # compute the f1 score of two peak sets
-    if len(tgt_peaks) <= 0: return -1
+def area_similarity(pred_areas, tgt_areas, matching_scope=50000, norm_ord = 2, dynamic_scope = False ,info=True):
+    # compute the f1 score of two area sets
+    if len(tgt_areas) <= 0: return -1
 
-    predict_match = np.zeros(len(pred_peaks))
-    target_match = np.zeros(len(tgt_peaks))
+    predict_match = np.zeros(len(pred_areas))
+    target_match = np.zeros(len(tgt_areas))
     
-    for i, pred_peak in enumerate(pred_peaks):
-        for j, tgt_peak in enumerate(tgt_peaks):
-            pred_idx = np.array(pred_peak)
-            tgt_idx = np.array(tgt_peak)
+    for i, pred_area in enumerate(pred_areas):
+        for j, tgt_area in enumerate(tgt_areas):
+            pred_idx = np.array(pred_area)
+            tgt_idx = np.array(tgt_area)
             
             if dynamic_scope:
                 # dynamic scope when near-diagonal
@@ -37,7 +43,7 @@ def area_similarity(pred_peaks, tgt_peaks, matching_scope=5.0, norm_ord = 2, dyn
     f1 = 2  / (1/ precision + 1/recall)
 
     if info:
-        print_info(f'pred matched: {pred_matched}, tgt matched: {tgt_matched}, predicted: {len(pred_peaks)}, target: {len(tgt_peaks)}')
+        print_info(f'pred matched: {pred_matched}, tgt matched: {tgt_matched}, predicted: {len(pred_areas)}, target: {len(tgt_areas)}')
 
     return pred_matched, tgt_matched, precision, recall, f1
 
@@ -87,6 +93,9 @@ if __name__=='__main__':
         norm_ord = np.inf
     elif norm_ord <= -10:
         norm_ord = -np.inf
+
+    print(args.predict_bedpe_file)
+    print(args.target_bedpe_file)
 
     predict_areas = read_bedpe_file(args.predict_bedpe_file)
     target_areas = read_bedpe_file(args.target_bedpe_file)

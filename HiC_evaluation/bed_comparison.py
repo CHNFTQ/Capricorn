@@ -1,3 +1,9 @@
+# This source code is licensed under the license found in the
+# LICENSE file in the root directory of this source tree.
+# --------------------------------------------------------
+# Compare two bed file which both include segments on chromosomes. Report statistics about them.
+# --------------------------------------------------------
+
 import pandas as pd
 import argparse
 import numpy as np

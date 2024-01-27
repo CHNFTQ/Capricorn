@@ -16,6 +16,8 @@ from data_processing.Read_npz import read_npz
 import logging
 import os
 import json
+from scipy import stats
+import pandas as pd
 
 def gaussian(width, sigma):
     gauss = torch.Tensor([exp(-(x-width//2)**2 / float(2 * sigma**2)) for x in range(width)])
@@ -77,20 +79,23 @@ if __name__ == '__main__':
     parser = argparse.ArgumentParser()
 
     parser.add_argument('-p', '--predict-dir', type=str)
-    parser.add_argument('--predict-resolution', type=str, default='10kb')
-    parser.add_argument('--predict-caption', type=str, default='hic')
+    parser.add_argument('-pr', '--predict-resolution', type=str, default='10kb')
+    parser.add_argument('-pc', '--predict-caption', type=str, default='hic')
 
     parser.add_argument('-t', '--target-dir', type=str, default='/data/hic_data/multichannel_mat/HiC/GM12878')
-    parser.add_argument('--target-resolution', type=str, default='10kb')
-    parser.add_argument('--target-caption', type=str, default='hic')
+    parser.add_argument('-tr', '--target-resolution', type=str, default='10kb')
+    parser.add_argument('-tc', '--target-caption', type=str, default='hic')
 
     parser.add_argument('-c', '--cell-line', type=str, default='GM12878')
     parser.add_argument('-s', dest='dataset', default='test', choices=set_dict.keys(), )
     
     parser.add_argument('--bound', type=int, default=200, help='Only evaluate the area within the bounding distance to diagonal')
+    parser.add_argument('-o', '--output-file', type=str, default = None)
+
     args = parser.parse_args()
 
     bound = args.bound
+    output_file = args.output_file
 
     mse_list = []
     ssim_list = []
@@ -114,10 +119,14 @@ if __name__ == '__main__':
 
     chr_list = set_dict[args.dataset]
     abandon_chromosome = abandon_chromosome_dict.get(args.cell_line, [])
+    
+    chrs = []
 
     for n in chr_list:
         if n in abandon_chromosome:
             continue
+
+        chrs.append(f'chr{n}')
 
         pred_file = os.path.join(args.predict_dir, f'chr{n}_{args.predict_resolution}.npz')
         
@@ -162,3 +171,23 @@ if __name__ == '__main__':
     print_info(str(np.mean(ssim_list)))
     print_info("Average PSNR:")
     print_info(str(np.mean(psnr_list)))
+
+    if output_file is not None:
+
+        chrs.append('average')
+        mse_list.append(np.mean(mse_list))
+        ssim_list.append(np.mean(ssim_list))
+        psnr_list.append(np.mean(psnr_list))
+
+        chrs.append('standard error')
+        mse_list.append(stats.sem(mse_list[:-1]))
+        ssim_list.append(stats.sem(ssim_list[:-1]))
+        psnr_list.append(stats.sem(psnr_list[:-1]))
+
+        result_data = pd.DataFrame.from_dict({
+            'chromosome' : chrs,
+            'MSE' : mse_list,
+            'SSIM' : ssim_list,
+            'PSNR' : psnr_list
+            })
+        result_data.to_csv(output_file, sep='\t', index = False)

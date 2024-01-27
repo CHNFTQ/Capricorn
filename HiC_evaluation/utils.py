@@ -9,7 +9,7 @@ import logging
 
 def get_oe_matrix(matrix, bound = 100000000, oe=True):
     max_offset = min(matrix.shape[0], bound)
-    
+
     expected = [np.mean(np.diagonal(matrix, offset)) for offset in range(max_offset)]
     
     if oe:

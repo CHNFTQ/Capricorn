@@ -23,11 +23,11 @@ def data_divider_parser():
                           required=True)
     parser.add_argument('-r', dest='res', help='REQUIRED: resolution specified[example:10kb]',
                           default='10kb', required=True)
-    parser.add_argument('-b', dest='bound', help='REQUIRED: distance boundary interested[example:201]',
+    parser.add_argument('-b', dest='bound', help='distance boundary interested[example:200]',
                               default=200, type=int)
-    parser.add_argument('--cutoff', dest='cutoff', type=int, help='cutoff for high resolution maps[example: 255 for High Resolution; 100 for Low Resolution]',
-                          required=True )
-    parser.add_argument('--transform-names', type=str, help='List of transforms used. Group transforms should be in the correct order(i.e. the next of Lp should be Lr)',
+    parser.add_argument('--cutoff', type=int, help='cutoff for high resolution maps[example: 255 for High Resolution; 100 for Low Resolution]',
+                              default=255)
+    parser.add_argument('-tn', '--transform-names', type=str, help='List of transforms used. Group transforms should be in the correct order(i.e. the next of Lp should be Lr)',
                         nargs='+', default = ['HiC', 'OE', '01TAD', 'Lp', 'Lr'])
 
     return parser
@@ -108,8 +108,8 @@ if __name__ == '__main__':
     abandon_chromosome = abandon_chromosome_dict[cell_line]
     print(f'Going to read {res} data for {cell_line}, then transform matrices with {trs}')
 
-    data_dir = os.path.join(root_dir, 'mat', cell_line)
-    out_dir = os.path.join(root_dir, 'multichannel_mat', '_'.join(trs), cell_line)
+    data_dir = os.path.join(root_dir, hic_matrix_dir, cell_line)
+    out_dir = os.path.join(root_dir, multichannel_matrix_dir, '_'.join(trs), cell_line)
     mkdir(out_dir)
 
     means_hr = []

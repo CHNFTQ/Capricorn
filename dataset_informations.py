@@ -1,5 +1,17 @@
+# This source code is licensed under the license found in the
+# LICENSE file in the root directory of this source tree.
+# --------------------------------------------------------
+# The dataset settings for experiments.
+# --------------------------------------------------------
+
 # the Root directory for all raw and processed data
 root_dir = '/data/hic_data'  # Example of root directory name
+
+# the folder to save files in preprocessing
+RAW_dir = 'raw'
+hic_matrix_dir = 'mat_new'
+multichannel_matrix_dir = 'multichannel_mat_new'
+data_dir = 'data_new'
 
 res_map = {'5kb': 5_000, '10kb': 10_000, '25kb': 25_000, '50kb': 50_000, '100kb': 100_000, '250kb': 250_000,
            '500kb': 500_000, '1mb': 1_000_000}

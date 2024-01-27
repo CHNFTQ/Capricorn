@@ -5,7 +5,7 @@
 # --------------------------------------------------------
 
 import numpy as np
-from HiC_evaluation.insulation_score import compute_insulation_score, compute_bounds
+from HiC_evaluation.Insulation_score import compute_insulation_score, compute_boundaries
 from utils import compactM, spreadM
 
 class TADaggregate:
@@ -26,7 +26,7 @@ class TADaggregate:
 
         for i in range(self.min_window_size, self.max_window_size+1):
             insulation_score = compute_insulation_score(matrix, i+1)
-            TAD_bounds = compute_bounds(insulation_score, self.delta_smooth_size, self.bound_strength)
+            TAD_bounds = compute_boundaries(insulation_score, self.delta_smooth_size, self.bound_strength)
 
             last_bound = 0
             for bound in TAD_bounds:

@@ -1,3 +1,9 @@
+# This source code is licensed under the license found in the
+# LICENSE file in the root directory of this source tree.
+# --------------------------------------------------------
+# a script to help convert .hic files to .npz files.
+# --------------------------------------------------------
+
 import sys
 import os
 import argparse
@@ -32,7 +38,7 @@ if __name__ == '__main__':
     print(hic.getGenomeID())
     print(hic.getResolutions())
 
-    out_dir = os.path.join(root_dir, 'mat', args.name)
+    out_dir = os.path.join(root_dir, hic_matrix_dir, args.name)
     mkdir(out_dir)
 
     chr_list = hic.getChromosomes()

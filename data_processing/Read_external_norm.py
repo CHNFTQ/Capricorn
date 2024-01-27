@@ -1,3 +1,9 @@
+# This source code is licensed under the license found in the
+# LICENSE file in the root directory of this source tree.
+# --------------------------------------------------------
+# a script to help read norm file.
+# --------------------------------------------------------
+
 import numpy as np
 
 def read_singlechromosome_norm(external_norm_file, n, cell_line, replace_nan = True):

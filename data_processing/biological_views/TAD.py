@@ -5,7 +5,7 @@
 # --------------------------------------------------------
 
 import numpy as np
-from HiC_evaluation.insulation_score import compute_insulation_score, compute_bounds
+from HiC_evaluation.Insulation_score import compute_insulation_score, compute_boundaries
 from utils import compactM, spreadM
 
 class TAD:
@@ -23,7 +23,7 @@ class TAD:
         matrix = compactM(matrix, compact_idx)
         
         insulation_score = compute_insulation_score(matrix, self.window_size)
-        TAD_bounds = compute_bounds(insulation_score, self.delta_smooth_size, self.bound_strength)
+        TAD_bounds = compute_boundaries(insulation_score, self.delta_smooth_size, self.bound_strength)
         
         out = np.zeros_like(matrix)
         last_bound = 0

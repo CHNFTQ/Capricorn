@@ -1,3 +1,9 @@
+# This source code is licensed under the license found in the
+# LICENSE file in the root directory of this source tree.
+# --------------------------------------------------------
+# a script to transform tsv outputs for loops to bedpe format
+# --------------------------------------------------------
+
 import pandas as pd
 import argparse
 
