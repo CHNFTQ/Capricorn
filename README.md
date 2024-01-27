@@ -54,8 +54,8 @@ HiC data into the directory. This would create a new directory with the cellline
 * See the codes for more details.
 
 ```
-python -m data_processing.Read_Data -c GM12878
-python -m data_processing.Read_Data -c K562
+python -m data_processing.Preprocess -c GM12878
+python -m data_processing.Preprocess -c K562
 ```
 
 
