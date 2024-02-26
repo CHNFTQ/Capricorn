@@ -389,8 +389,9 @@ if __name__ == '__main__':
         
         # matrix, compact_idx, norm = read_npz(in_file, hic_caption=hic_caption, bound = bound, multiple=multiple, include_additional_channels=False)
 
-        # start1, end1 = 234-10, 234+10
-        # start2, end2 = 354-10, 354+10
+        # w = 20
+        # start1, end1 = 50 -w, 50 +w
+        # start2, end2 = 250-w, 250+w
         # oe,_ = get_oe_matrix(matrix, bound=200)       
         # draw_peaks(oe, peaks, start1 = start1, end1 = end1, start2 = start2, end2 = end2, file_name=os.path.join(save_dir, f'chr{n}_{start1}to{end1}_{start2}to{end2}_oe.pdf'))
         # draw_peaks(matrix, peaks, start1 = start1, end1 = end1, start2 = start2, end2 = end2, file_name=os.path.join(save_dir, f'chr{n}_{start1}to{end1}_{start2}to{end2}.pdf'))

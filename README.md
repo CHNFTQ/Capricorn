@@ -7,7 +7,7 @@ Capricorn is a tool for HiC contact matrix enhancement. Capricorn combines small
 For more information, please read the preprint paper in (https://www.biorxiv.org/content/10.1101/2023.10.25.564065v2). 
 
 ## Dependencies
-The following packages are required. We also provided a recommended versions.
+The following packages are required. We also provided recommended versions.
 - Python 3.9
 - Pytorch 2.0.1
 - Numpy 1.24.3
@@ -46,7 +46,7 @@ HiC data into the directory. This would create a new directory with the cellline
 2. **Run the all-in-one scrips to generate data for training, validation and testing**
 
 * The scripts will run several scripts to get the data for training, validation and test:
-    1. Read raw data files from RAW_dir, save them in numpy matrix style(.npz files) in hic_matrix_dir.
+    1. Read raw data files from RAW_dir, save them in numpy matrix style(.npz files) in `hic_matrix_dir`.
     2. Read the high-coverage numpy matrices and downsample them.
     3. Transform both high-coverage and low-coverage matrices to include additional views. 
     4. Split the transformed matrices to get 40 by 40 patches, which can then be used for training, validation and test.
