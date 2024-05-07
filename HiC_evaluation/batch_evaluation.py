@@ -12,17 +12,17 @@ from dataset_informations import *
 # We removed some duplicated evaluation(e.g. Capricorn evaluation was repeated in many experiments, and we didn't rerun it many times.)
 # Currently not include the submatrix comparison experiments. Please see submatrices_loop_calc.py for the experiments.
 Evaluate_settings = {
-    'Example':
+    'Example_GM12878':
     {
 
-        'convert_to_cool' : True,
+        'convert_to_cool' : False,
 
-        'run_HiCCUPS': True,
+        'run_HiCCUPS': False,
         'run_Chromosight': True,
         'run_Mustache': True,
 
         'compare_MSE': False,
-        'compare_HiCCUPS': True,
+        'compare_HiCCUPS': False,
         'compare_Chromosight': True,
         'compare_Mustache': True,
         
@@ -62,6 +62,59 @@ Evaluate_settings = {
                 'multiple': 1,
                 'caption': 'hic', 
                 'save_dir': 'results/example/LC/GM12878'
+            },
+        ]
+    },
+    'Example_K562':
+    {
+
+        'convert_to_cool' : False,
+
+        'run_HiCCUPS': False,
+        'run_Chromosight': True,
+        'run_Mustache': True,
+
+        'compare_MSE': False,
+        'compare_HiCCUPS': False,
+        'compare_Chromosight': True,
+        'compare_Mustache': True,
+        
+        'dataset': 'test',
+        'cell_line': 'K562',
+
+        'target_datas': {
+            'MSE': {
+                'data_dir' : f'{root_dir}/{multichannel_matrix_dir}/HiC/K562', 
+                'res': '10kb', 
+                'multiple': 1,
+                'caption': 'hic'
+            },
+            'HiCCUPS': {
+                'data_dir' : f'{root_dir}/{hic_matrix_dir}/K562', 
+                'res': '10kb', 
+                'multiple': 1,
+                'caption': 'hic'
+            },
+            'Chromosight': {
+                'data_dir' : f'{root_dir}/{hic_matrix_dir}/K562', 
+                'res': '10kb', 
+                'multiple': 1,
+                'caption': 'hic'
+            },
+            'Mustache': {
+                'data_dir' : f'{root_dir}/{hic_matrix_dir}/K562', 
+                'res': '10kb', 
+                'multiple': 1,
+                'caption': 'hic'
+            },
+        },
+        'datas': [
+            {
+                'data_dir': f'{root_dir}/{hic_matrix_dir}/K562', 
+                'res': '10kb_d16_seed0', 
+                'multiple': 1,
+                'caption': 'hic', 
+                'save_dir': 'results/example/LC/K562'
             },
         ]
     },
@@ -110,7 +163,7 @@ Evaluate_settings = {
         'datas': [
             {
                 'data_dir': f'{root_dir}/mat/GM12878', 
-                'res': '10kb', 
+                'res': '10kb_d16_seed0', 
                 'multiple': 1,
                 'caption': 'hic', 
                 'save_dir': 'results/main_results/LC/GM12878'
@@ -196,7 +249,7 @@ Evaluate_settings = {
         'datas': [
             {
                 'data_dir': f'{root_dir}/mat/K562', 
-                'res': '10kb', 
+                'res': '10kb_d16_seed0', 
                 'multiple': 1,
                 'caption': 'hic', 
                 'save_dir': 'results/main_results/LC/K562'
@@ -979,7 +1032,7 @@ if __name__ == '__main__':
             os.system(command)
         
         if run_Chromosight:
-            command = f'chromosight detect --pattern=loops_small --min-dist 15000 --max-dist 2000000 {data["data_dir"]}/bound200_res{data["res"]}.cool {data["data_dir"]}/{data["res"]}/chromosight_small'
+            command = f'chromosight detect --pattern=loops_small --min-dist 15000 --max-dist 2000000 {data["data_dir"]}/bound200_{data["res"]}.cool {data["data_dir"]}/{data["res"]}/chromosight_small'
             os.system(command)
 
         if compare_Chromosight:
@@ -993,7 +1046,7 @@ if __name__ == '__main__':
             os.system(command)
 
         if run_Mustache:
-            command = f'python -m HiC_evaluation.mustache -r 10kb -f {data["data_dir"]}/bound200_res{data["res"]}.cool -o {data["data_dir"]}/{data["res"]}/mustache.tsv'
+            command = f'python -m HiC_evaluation.mustache -r 10kb -f {data["data_dir"]}/bound200_{data["res"]}.cool -o {data["data_dir"]}/{data["res"]}/mustache.tsv'
             os.system(command)
 
         if compare_Mustache:
