@@ -4,7 +4,9 @@ The python implementation of Capricorn.
 
 Capricorn is a tool for HiC contact matrix enhancement. Capricorn combines small-scale chromatin features with HiC matrix and utilize the diffusion model to generate High-coverage HiC matrices.
 
-For more information, please read the preprint paper in (https://www.biorxiv.org/content/10.1101/2023.10.25.564065v2). 
+For more information, please read our paper [Enhancing Hi-C contact matrices for loop detection with Capricorn: a multiview diffusion model](https://doi.org/10.1093/bioinformatics/btae211)) accepted by ISMB 2024 and published in bioinformatics. 
+
+The pre-trained model weights is uploaded in https://doi.org/10.5281/zenodo.15417363
 
 ## Dependencies
 The following packages are required. We also provided recommended versions.
